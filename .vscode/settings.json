@@ -162,6 +162,14 @@
     "selenium-java-4.23.0/selenium-safari-driver-4.23.0.jar",
     "selenium-java-4.23.0/selenium-safari-driver-4.23.0-sources.jar",
     "selenium-java-4.23.0/selenium-support-4.23.0.jar",
-    "selenium-java-4.23.0/selenium-support-4.23.0-sources.jar"
+    "selenium-java-4.23.0/selenium-support-4.23.0-sources.jar",
+    "javafx-sdk-22.0.2/lib/javafx.base.jar",
+    "javafx-sdk-22.0.2/lib/javafx.controls.jar",
+    "javafx-sdk-22.0.2/lib/javafx.fxml.jar",
+    "javafx-sdk-22.0.2/lib/javafx.graphics.jar",
+    "javafx-sdk-22.0.2/lib/javafx.media.jar",
+    "javafx-sdk-22.0.2/lib/javafx.swing.jar",
+    "javafx-sdk-22.0.2/lib/javafx.web.jar",
+    "javafx-sdk-22.0.2/lib/javafx-swt.jar"
   ]
 }

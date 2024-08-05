@@ -4,7 +4,6 @@ import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.interactions.Actions;
-import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
 import javax.imageio.ImageIO;
@@ -104,16 +103,14 @@ public class Main {
                             BufferedImage image = ImageIO.read(new ByteArrayInputStream(screenshot));
 
                             //scaling
-                            BufferedImage resized = new BufferedImage(outputX, outputY, BufferedImage.TYPE_3BYTE_BGR);
+                            BufferedImage resized = new BufferedImage(outputX, outputY, BufferedImage.TYPE_4BYTE_ABGR);
                             Graphics2D graphics = resized.createGraphics();
                             graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
                             graphics.drawImage(image, 0, 0, outputX, outputY, 0, 0, image.getWidth(), image.getHeight(), null);
                             graphics.dispose();
                             //end scaling
 
-                            byte[] data = ((DataBufferByte) resized.getRaster().getDataBuffer()).getData();
-                            dataOutputStream.writeInt(data.length);
-                            dataOutputStream.write(data);
+                            OCIF.sendToSocket(dataOutputStream, resized, outputX, outputY, 5, true, true, 1);
 
                             while (inputStream.available() <= 0) {
                                 Thread.sleep(100);

@@ -1,0 +1,139 @@
+package com.evan;
+
+import java.awt.image.BufferedImage;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
+
+class OCIF {
+    private static void writePixelToFileAsOCIF5(DataOutputStream out, Pixel pixel) throws IOException {
+        out.write((byte) Palette.getClosestIndex(pixel.background));
+        out.write((byte) Palette.getClosestIndex(pixel.foreground));
+
+        out.write((byte) pixel.alpha);
+        out.write(pixel.symbol.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static byte[] integerToByteArray(int number, int arraySize) {
+        byte[] array = new byte[arraySize];
+
+        int position = arraySize - 1;
+        do {
+            array[position] = (byte) (number & 0xFF);
+            number = number >> 8;
+            position--;
+        } while (number > 0);
+
+        while (position >= 0) {
+            array[position] = 0x0;
+            position--;
+        }
+
+        return array;
+    }
+
+    private static void writeGroupedImage(DataOutputStream out, HashMap<Integer, HashMap<String, HashMap<Integer, HashMap<Integer, HashMap<Integer, ArrayList<Integer>>>>>> groupedImage, int encodingMethod) throws IOException {
+        int is7 = encodingMethod >= 7 ? 1 : 0;
+        int is8 = encodingMethod >= 8 ? 1 : 0;
+
+        // Alphas size
+        out.write(groupedImage.keySet().size() - is7);
+
+        for (Integer alpha : groupedImage.keySet()) {
+            // Alpha
+            out.write(alpha.byteValue());
+            // Symbols size
+            out.write(integerToByteArray(groupedImage.get(alpha).keySet().size() - is7, 2));
+
+            for (String symbol : groupedImage.get(alpha).keySet()) {
+                // Symbol
+                out.write(symbol.getBytes(StandardCharsets.UTF_8));
+                // Backgrounds size
+                out.write((byte) groupedImage.get(alpha).get(symbol).keySet().size() - is7);
+
+                for (Integer background : groupedImage.get(alpha).get(symbol).keySet()) {
+                    // Background
+                    out.write(background.byteValue());
+                    // Foregrounds size
+                    out.write((byte) groupedImage.get(alpha).get(symbol).get(background).keySet().size() - is7);
+
+                    for (Integer foreground : groupedImage.get(alpha).get(symbol).get(background).keySet()) {
+                        // Foreground
+                        out.write(foreground.byteValue());
+                        // Ys size
+                        out.write((byte) groupedImage.get(alpha).get(symbol).get(background).get(foreground).keySet().size() - is7);
+
+                        for (Integer y : groupedImage.get(alpha).get(symbol).get(background).get(foreground).keySet()) {
+                            // Y
+                            out.write(y.byteValue() - is8);
+                            // Xs size
+                            out.write((byte) groupedImage.get(alpha).get(symbol).get(background).get(foreground).get(y).size() - is7);
+
+                            for (Integer x : groupedImage.get(alpha).get(symbol).get(background).get(foreground).get(y)) {
+                                // X
+                                out.write(x.byteValue() - is8);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private static Image loadImage(BufferedImage buffImage, boolean convertAsBraille, boolean enableDithering, double opacity) {
+        Image image = new Image(buffImage);
+
+        if (enableDithering) {
+            image = Image.dither(image, opacity);
+        }
+
+        return image;
+    }
+
+    static void sendToSocket(DataOutputStream out, BufferedImage bufImage, int requestedWidth, int requestedHeight, int encodingMethod, boolean convertAsBraille, boolean enableDithering, double opacity) throws IOException {
+        Image image = loadImage(bufImage, convertAsBraille, enableDithering, opacity);
+
+        out.write("OCIF".getBytes(StandardCharsets.US_ASCII));
+        out.write((byte) encodingMethod);
+
+        if (encodingMethod == 5) {
+            out.write(integerToByteArray(requestedWidth, 2));
+            out.write(integerToByteArray(requestedHeight, 2));
+        }
+        else if (encodingMethod >= 8){
+            out.write((byte) (requestedWidth - 1));
+            out.write((byte) (requestedHeight - 1));
+        }
+        else{
+            out.write((byte) requestedWidth);
+            out.write((byte) requestedHeight);
+        }
+
+        if (convertAsBraille) {
+            if (encodingMethod == 5) {
+                for (int y = 0; y < image.height; y += 4) {
+                    for (int x = 0; x < image.width; x += 2) {
+                        writePixelToFileAsOCIF5(out, Image.getBraillePixel(image, x, y));
+                    }
+                }
+            }
+            else {
+                writeGroupedImage(out, Image.groupAsBraille(image), encodingMethod);
+            }
+        }
+        else {
+            if (encodingMethod == 5) {
+                for (int y = 0; y < image.height; y += 2) {
+                    for (int x = 0; x < image.width; x += 1) {
+                        writePixelToFileAsOCIF5(out, Image.getSemiPixel(image, x, y));
+                    }
+                }
+            }
+            else {
+                writeGroupedImage(out, Image.groupAsSemiPixel(image), encodingMethod);
+            }
+        }
+    }
+}

@@ -9,6 +9,8 @@ local gpu = component.gpu
 local internet = require("internet")
 local handle
 
+screen.flush(160,50)
+
 local function bytesToInt(bytes)
   if bytes == nil then
     return 0
@@ -20,10 +22,11 @@ while true do
 
   if not handle then
     handle = internet.open("127.0.0.1", 54321)
+    -- handle:setTimeout(0.05)
   end
 
   -- Experimental image reading
-  local picture, failure = image.readPixelData(handle, 7, 160, 50)
+  local picture, failure = image.readPixelData(handle, 5, 160, 50)
   if picture then
     screen.drawImage(0, 0, picture, false)
   else
@@ -32,29 +35,29 @@ while true do
   end
   -- End experimental crap
 
-  local frameSize = handle:read(4)
-  local frameBytes = bytesToInt(frameSize)
+  -- local frameSize = handle:read(4)
+  -- local frameBytes = bytesToInt(frameSize)
 
-  local width = 160
+  -- local width = 160
 
-  local x = 1
-  local y = 1
+  -- local x = 1
+  -- local y = 1
 
-  for i = 1,frameBytes,3 do
-    local b = string.byte(handle:read(1), 1)
-    local g = string.byte(handle:read(1), 1)
-    local r = string.byte(handle:read(1), 1)
-    --print(x..', '..y..': '..r..', '..g..', '..b)
+  -- for i = 1,frameBytes,3 do
+  --   local b = string.byte(handle:read(1), 1)
+  --   local g = string.byte(handle:read(1), 1)
+  --   local r = string.byte(handle:read(1), 1)
+  --   --print(x..', '..y..': '..r..', '..g..', '..b)
 
-    gpu.setForeground(color.RGBToInteger(r,g,b))
-    gpu.fill(x, y, 1, 1, "▓")
+  --   gpu.setForeground(color.RGBToInteger(r,g,b))
+  --   gpu.fill(x, y, 1, 1, "▓")
 
-    x = x + 1
-    if x > width then
-      x = 1
-      y = y + 1
-    end
-  end
+  --   x = x + 1
+  --   if x > width then
+  --     x = 1
+  --     y = y + 1
+  --   end
+  -- end
 
   handle:write(string.char(0xF1))
 end

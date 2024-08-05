@@ -1,5 +1,9 @@
 local computer = require("computer")
 local color = require("external/Color")
+local screen = require("external/Screen")
+
+local bit32 = require("bit32")
+local string = require("string")
 
 --------------------------------------------------------------------------------
 
@@ -303,16 +307,45 @@ function image.readMetadata(file)
 	end
 end
 
-function image.readPixelData(file, encodingMethod, width, height)
+function bytesToInt(bytes)
+	if bytes == nil then
+	  return 0
+	end
+	return bit32.bor(bit32.lshift(bit32.band(string.byte(bytes, 1) , 0xFF) , 24), bit32.bor(bit32.lshift(bit32.band(string.byte(bytes, 2) , 0xFF) , 16), bit32.bor(bit32.lshift(bit32.band(string.byte(bytes, 3) , 0xFF) , 8), bit32.band(string.byte(bytes, 4) , 0xFF))));
+  end
+
+function image.readPixelData(file, width, height)
+	local frameBytes = bytesToInt(file:read(4))
+
 	local picture = {}
-	local result, reason = xpcall(encodingMethodsRead[encodingMethod], debug.traceback, file, picture, width, height)
+	local result, reason = xpcall(evansDataReader, debug.traceback, file, picture, width, height, frameBytes)
 	file:close()
 
 	if result then
 		return picture
 	else
-		return false, "Failed to read OCIF pixel data: " .. tostring(reason)
+		return false, "Failed to read pixel data: " .. tostring(reason)
 	end
+end
+
+function evansDataReader(file, picture, width, height, frameBytes)
+	picture[1] = width
+	picture[2] = height
+
+	for i = 1, frameBytes, 3 do
+		table.insert(picture, color.to24Bit(getByte(file)))
+		table.insert(picture, color.to24Bit(getByte(file)))
+		table.insert(picture, getByte(file) / 255)
+		table.insert(picture, '▓')
+	end
+end
+
+function getByte(file)
+	local stringWHYvalue = file:read(1)
+	if stringWHYvalue then
+		return string.byte(stringWHYvalue, 1)
+	end
+	return 0
 end
 
 -------------------------------------------------------------------------------
