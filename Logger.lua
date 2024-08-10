@@ -4,8 +4,11 @@ local Logger = {}
 local file
 
 function Logger.enableLogging()
-    local fileName = "logging/log.txt"
+    local fileName = "/tmp/log.txt"
     file = io.open(fileName, "w")
+    if not file then
+        print("Error loading logger, file not created at: " .. fileName)
+    end
 end
 
 function Logger.log(text)

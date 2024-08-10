@@ -16,6 +16,14 @@ local encodingMethodsWrite = {}
 
 --------------------------------------------------------------------------------
 
+local function bytesToInt(bytes)
+    return bit32.bor(bit32.lshift(bit32.band(string.byte(bytes, 1) , 0xFF) , 24), bit32.bor(bit32.lshift(bit32.band(string.byte(bytes, 2) , 0xFF) , 16), bit32.bor(bit32.lshift(bit32.band(string.byte(bytes, 3) , 0xFF) , 8), bit32.band(string.byte(bytes, 4) , 0xFF))));
+end
+
+local function bytesToShort(bytes)
+    return bit32.bor(bit32.lshift(string.byte(bytes, 1), 8), string.byte(bytes, 2))
+end
+
 local function group(picture, compressColors)
 	local groupedPicture, x, y, background, foreground = {}, 1, 1
 
@@ -73,8 +81,8 @@ end
 
 encodingMethodsReadMetadata[5] = function(file)
 	return
-		file:read(2),
-		file:read(2)
+		bytesToShort(file:read(2)),
+		bytesToShort(file:read(2))
 end
 
 encodingMethodsRead[5] = function(file, picture, width, height)
@@ -82,17 +90,17 @@ encodingMethodsRead[5] = function(file, picture, width, height)
 	picture[2] = height
 
 	for i = 1, width * height do
-		table.insert(picture, color.to24Bit(file:read(1)))
-		table.insert(picture, color.to24Bit(file:read(1)))
-		table.insert(picture, file:read(1) / 255)
-		table.insert(picture, file:readUnicodeChar())
+		table.insert(picture, color.to24Bit(string.byte(file:read(1))))
+		table.insert(picture, color.to24Bit(string.byte(file:read(1))))
+		table.insert(picture, string.byte(file:read(1)) / 255)
+		table.insert(picture, utf8.char(string.byte(file:read(1))))
 	end
 end
 
 local function readMetadata678(file, is7, is8)
 	return
-		file:read(1) + is8,
-		file:read(1) + is8
+		string.byte(file:read(1)) + is8,
+		string.byte(file:read(1)) + is8
 end
 
 local function read678(file, picture, width, height, is7, is8)
@@ -101,25 +109,25 @@ local function read678(file, picture, width, height, is7, is8)
 
 	local currentAlpha, currentSymbol, currentBackground, currentForeground, currentY
 
-	for alpha = 1, file:read(1) + is7 do
-		currentAlpha = file:read(1) / 255
-		
-		for symbol = 1, file:read(2) + is7 do
-			currentSymbol = file:readUnicodeChar()
-			
-			for background = 1, file:read(1) + is7 do
-				currentBackground = color.to24Bit(file:read(1))
-				
-				for foreground = 1, file:read(1) + is7 do
-					currentForeground = color.to24Bit(file:read(1))
-					
-					for y = 1, file:read(1) + is7 do
-						currentY = file:read(1)
-						
-						for x = 1, file:read(1) + is7 do
+	for alpha = 1, string.byte(file:read(1)) + is7 do
+		currentAlpha = string.byte(file:read(1)) / 255
+
+		for symbol = 1, bytesToShort(file:read(2)) + is7 do
+			currentSymbol = file:read(1)
+
+			for background = 1, string.byte(file:read(1)) + is7 do
+				currentBackground = color.to24Bit(string.byte(file:read(1)))
+
+				for foreground = 1, string.byte(file:read(1)) + is7 do
+					currentForeground = color.to24Bit(string.byte(file:read(1)))
+
+					for y = 1, string.byte(file:read(1)) + is7 do
+						currentY = string.byte(file:read(1))
+
+						for x = 1, string.byte(file:read(1)) + is7 do
 							image.set(
 								picture,
-								file:read(1) + is8,
+								string.byte(file:read(1)) + is8,
 								currentY + is8,
 								currentBackground,
 								currentForeground,
@@ -280,10 +288,10 @@ function image.copy(picture)
 end
 
 function image.readMetadata(file)
-	local signature = file:readString(#OCIFSignature)
+	local signature = file:read(#OCIFSignature)
 		
 	if signature == OCIFSignature then
-		local encodingMethod = file:read(1)
+		local encodingMethod = string.byte(file:read(1))
 		
 		if encodingMethodsReadMetadata[encodingMethod] then
 			local result, widthOrReason, height = xpcall(encodingMethodsReadMetadata[encodingMethod], debug.traceback, file, picture)
@@ -291,61 +299,25 @@ function image.readMetadata(file)
 			if result then
 				return signature, encodingMethod, widthOrReason, height
 			else
-				file:close()
-
 				return false, "Failed to read OCIF metadata: " .. tostring(widthOrReason)
 			end
 		else
-			file:close()
-		
 			return false, "Failed to read OCIF metadata: encoding method \"" .. tostring(encodingMethod) .. "\" is not supported"
 		end
 	else
-		file:close()
-		
 		return false, "Failed to read OCIF metadata: binary signature \"" .. tostring(signature) .. "\" is not valid"
 	end
 end
 
-function bytesToInt(bytes)
-	if bytes == nil then
-	  return 0
-	end
-	return bit32.bor(bit32.lshift(bit32.band(string.byte(bytes, 1) , 0xFF) , 24), bit32.bor(bit32.lshift(bit32.band(string.byte(bytes, 2) , 0xFF) , 16), bit32.bor(bit32.lshift(bit32.band(string.byte(bytes, 3) , 0xFF) , 8), bit32.band(string.byte(bytes, 4) , 0xFF))));
-  end
-
-function image.readPixelData(file, width, height)
-	local frameBytes = bytesToInt(file:read(4))
-
+function image.readPixelData(file, encodingMethod, width, height)
 	local picture = {}
-	local result, reason = xpcall(evansDataReader, debug.traceback, file, picture, width, height, frameBytes)
-	file:close()
+	local result, reason = xpcall(encodingMethodsRead[encodingMethod], debug.traceback, file, picture, width, height)
 
 	if result then
 		return picture
 	else
-		return false, "Failed to read pixel data: " .. tostring(reason)
+		return false, "Failed to read OCIF pixel data: " .. tostring(reason)
 	end
-end
-
-function evansDataReader(file, picture, width, height, frameBytes)
-	picture[1] = width
-	picture[2] = height
-
-	for i = 1, frameBytes, 3 do
-		table.insert(picture, color.to24Bit(getByte(file)))
-		table.insert(picture, color.to24Bit(getByte(file)))
-		table.insert(picture, getByte(file) / 255)
-		table.insert(picture, '▓')
-	end
-end
-
-function getByte(file)
-	local stringWHYvalue = file:read(1)
-	if stringWHYvalue then
-		return string.byte(stringWHYvalue, 1)
-	end
-	return 0
 end
 
 -------------------------------------------------------------------------------

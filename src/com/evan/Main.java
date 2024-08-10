@@ -112,9 +112,10 @@ public class Main {
 
                             OCIF.sendToSocket(dataOutputStream, resized, outputX, outputY, 5, true, true, 1);
 
-                            while (inputStream.available() <= 0) {
+                            while (inputStream.available() <= 0 && clientSocket.isConnected() && run) {
                                 Thread.sleep(100);
                             }
+                            System.out.println("Client indicated success, sending next frame");
                         }
                     }
                     System.out.println("Connection lost! Ending stream.");
