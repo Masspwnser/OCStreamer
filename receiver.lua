@@ -33,10 +33,13 @@ while true do
             logger.log("Failed to read image data, reason: " .. failure)
             os.sleep(1)
         else
+            logger.log("Successfully read image data (but image may be incomplete) Image size: " .. #picture)
             local success, reason = pcall(screen.drawImage, 0, 0, picture, false)
             if not success then
                 logger.log("Failed to display image, reason: " .. reason)
                 os.sleep(1)
+            else
+                logger.log("Successfully displayed image")
             end
         end
 
