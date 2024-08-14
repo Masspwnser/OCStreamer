@@ -23,8 +23,6 @@ import java.util.List;
 //todo RLE pixels
 
 public class Main {
-    private static boolean run = true;
-
     public static void main(String[] args) throws InterruptedException {
         final String pageURL;
         final String outputResolution;
@@ -85,20 +83,19 @@ public class Main {
          });
 
         try {
-            while(run) {
+            while (true) {
                 ServerSocket serverSocket = null;
-                try{
-                    Thread.sleep(100);
+                try {
                     serverSocket = new ServerSocket(54321, 1);
 
                     System.out.println("Waiting for connection!");
                     Socket clientSocket = serverSocket.accept();
                     System.out.println("Connection received! Begin streaming...");
-                    if(clientSocket.isConnected() && run) {
+                    if (clientSocket.isConnected()) {
                         DataOutputStream dataOutputStream = new DataOutputStream(clientSocket.getOutputStream());
                         InputStream inputStream = clientSocket.getInputStream();
 
-                        while(clientSocket.isConnected() && run) {
+                        while (clientSocket.isConnected()) {
                             byte[] screenshot = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BYTES);
                             BufferedImage image = ImageIO.read(new ByteArrayInputStream(screenshot));
 
@@ -110,12 +107,12 @@ public class Main {
                             graphics.dispose();
                             //end scaling
 
-                            OCIF.sendToSocket(dataOutputStream, resized, outputX, outputY, 5, true, true, 1);
-
-                            while (inputStream.available() <= 0 && clientSocket.isConnected() && run) {
+                            while (inputStream.available() <= 0) {
                                 Thread.sleep(100);
                             }
-                            System.out.println("Client indicated success, sending next frame");
+                            System.out.println("Client requested new frame, sending it");
+
+                            OCIF.sendToSocket(dataOutputStream, resized, outputX, outputY, 5, true, true, 1);
                         }
                     }
                     System.out.println("Connection lost! Ending stream.");

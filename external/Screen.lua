@@ -607,23 +607,10 @@ local function drawImage(x, y, picture, blendForeground)
 	for j = 1, clippedImageHeight do
 		for i = 1, clippedImageWidth do
 			alpha, char = picture[pictureIndex + 2], picture[pictureIndex + 3]
+
+			-- ^ Trim out alpha TODO
 			
-			-- If it's fully transparent pixel
-			if alpha == 0 then
-				newFrameBackgrounds[screenIndex], newFrameForegrounds[screenIndex] = picture[pictureIndex], picture[pictureIndex + 1]
-			-- If it has some transparency
-			elseif alpha > 0 and alpha < 1 then
-				newFrameBackgrounds[screenIndex] = colorBlend(newFrameBackgrounds[screenIndex], picture[pictureIndex], alpha)
-				
-				if blendForeground then
-					newFrameForegrounds[screenIndex] = colorBlend(newFrameForegrounds[screenIndex], picture[pictureIndex + 1], alpha)
-				else
-					newFrameForegrounds[screenIndex] = picture[pictureIndex + 1]
-				end
-			-- If it's not transparent with whitespace
-			elseif char ~= " " then
-				newFrameForegrounds[screenIndex] = picture[pictureIndex + 1]
-			end
+			newFrameBackgrounds[screenIndex], newFrameForegrounds[screenIndex] = picture[pictureIndex], picture[pictureIndex + 1]
 
 			newFrameChars[screenIndex] = char
 
