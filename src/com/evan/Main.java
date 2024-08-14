@@ -103,10 +103,10 @@ public class Main {
                             BufferedImage image = ImageIO.read(new ByteArrayInputStream(screenshot));
 
                             //scaling
-                            BufferedImage resized = new BufferedImage(outputX, outputY, BufferedImage.TYPE_4BYTE_ABGR);
+                            BufferedImage resized = new BufferedImage(outputX*2, outputY*4, BufferedImage.TYPE_4BYTE_ABGR);
                             Graphics2D graphics = resized.createGraphics();
                             graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
-                            graphics.drawImage(image, 0, 0, outputX, outputY, 0, 0, image.getWidth(), image.getHeight(), null);
+                            graphics.drawImage(image, 0, 0, outputX*2, outputY*4, 0, 0, image.getWidth(), image.getHeight(), null);
                             graphics.dispose();
                             //end scaling
 
