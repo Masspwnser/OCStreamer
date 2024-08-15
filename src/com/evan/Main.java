@@ -108,6 +108,7 @@ public class Main {
                             //end scaling
 
                             while (inputStream.available() <= 0) {
+                                System.out.println("WAITED, AVOID AT ALL COST");
                                 Thread.sleep(100);
                             }
                             System.out.println("Client requested new frame, sending it");

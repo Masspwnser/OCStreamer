@@ -15,21 +15,12 @@ local function bytesToShort(bytes)
     return bit32.bor(bit32.lshift(string.byte(bytes, 1), 8), string.byte(bytes, 2))
 end
 
-local function readUnicodeChar(file)
-	local byteArray = {string.byte(file:read(1))}
-
-	local nullBitPosition = 0
-	for i = 1, 7 do
-		if bit32.band(bit32.rshift(byteArray[1], 8 - i), 0x1) == 0x0 then
-			nullBitPosition = i
-			break
-		end
-	end
-
-	for i = 1, nullBitPosition - 2 do
-		table.insert(byteArray, string.byte(file:read(1)))
-	end
-
+local function readUnicodeChar(byte)
+	-- Shenannigans to convert bitpacked braille to unicode, so lua plays nice.
+	-- TODO Implement custom 8-bit braille -> character decoding?
+	local byteArray = {0xE2}
+	byteArray[2] = 0xA0 + bit32.rshift(bit32.band(byte, 0xC0), 6)
+	byteArray[3] = 0x80 + bit32.band(byte, 0x3F)
 	return string.char(table.unpack(byteArray))
 end
 
@@ -42,12 +33,11 @@ end
 local function readPixelData(file, picture, width, height)
 	picture[1] = width
 	picture[2] = height
-
-	for i = 1, width * height do
+	local numPixels = width * height;
+	for i = 1, numPixels do
 		table.insert(picture, color.to24Bit(string.byte(file:read(1))))
 		table.insert(picture, color.to24Bit(string.byte(file:read(1))))
-		table.insert(picture, string.byte(file:read(1)) / 255)
-		table.insert(picture, readUnicodeChar(file))
+		table.insert(picture, readUnicodeChar(string.byte(file:read(1))))
 	end
 end
 

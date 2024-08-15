@@ -572,7 +572,7 @@ local function drawImage(x, y, picture, blendForeground)
 	-- Clipping left
 	if x < drawLimitX1 then
 		temp = drawLimitX1 - x
-		clippedImageWidth, x, pictureIndex = clippedImageWidth - temp, drawLimitX1, pictureIndex + temp * 4
+		clippedImageWidth, x, pictureIndex = clippedImageWidth - temp, drawLimitX1, pictureIndex + temp * 3
 	end
 
 	-- Right
@@ -585,7 +585,7 @@ local function drawImage(x, y, picture, blendForeground)
 	-- Top
 	if y < drawLimitY1 then
 		temp = drawLimitY1 - y
-		clippedImageHeight, y, pictureIndex = clippedImageHeight - temp, drawLimitY1, pictureIndex + temp * imageWidth * 4
+		clippedImageHeight, y, pictureIndex = clippedImageHeight - temp, drawLimitY1, pictureIndex + temp * imageWidth * 3
 	end
 
 	-- Bottom
@@ -601,20 +601,15 @@ local function drawImage(x, y, picture, blendForeground)
 		pictureIndexStep,
 		background,
 		foreground,
-		alpha,
-		char = bufferWidth * (y - 1) + x, bufferWidth - clippedImageWidth, (imageWidth - clippedImageWidth) * 4
+		char = bufferWidth * (y - 1) + x, bufferWidth - clippedImageWidth, (imageWidth - clippedImageWidth) * 3
 
 	for j = 1, clippedImageHeight do
 		for i = 1, clippedImageWidth do
-			alpha, char = picture[pictureIndex + 2], picture[pictureIndex + 3]
-
-			-- ^ Trim out alpha TODO
-			
 			newFrameBackgrounds[screenIndex], newFrameForegrounds[screenIndex] = picture[pictureIndex], picture[pictureIndex + 1]
 
-			newFrameChars[screenIndex] = char
+			newFrameChars[screenIndex] = picture[pictureIndex + 2]
 
-			screenIndex, pictureIndex = screenIndex + 1, pictureIndex + 4
+			screenIndex, pictureIndex = screenIndex + 1, pictureIndex + 3
 		end
 
 		screenIndex, pictureIndex = screenIndex + screenIndexStep, pictureIndex + pictureIndexStep

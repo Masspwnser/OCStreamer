@@ -11,9 +11,9 @@ class OCIF {
     private static void writePixelToFileAsOCIF5(DataOutputStream out, Pixel pixel) throws IOException {
         out.write((byte) Palette.getClosestIndex(pixel.background));
         out.write((byte) Palette.getClosestIndex(pixel.foreground));
-
-        out.write((byte) pixel.alpha);
-        out.write(pixel.symbol.getBytes(StandardCharsets.UTF_8));
+        // Bitpack the braille to reduce throughput
+        byte[] utf8Bytes = pixel.symbol.getBytes(StandardCharsets.UTF_8);
+        out.write(((utf8Bytes[1] & 0x03) << 6) | (utf8Bytes[2] & 0x3F));
     }
 
     private static byte[] integerToByteArray(int number, int arraySize) {
