@@ -1,6 +1,4 @@
-local color = dofile("external/Color.lua")
 local screen = dofile("external/Screen.lua")
-local image = dofile("external/Image.lua")
 local logger = require("Logger")
 local functions = require("Functions")
 
@@ -31,7 +29,7 @@ function mainLoop()
     end
 end
 
--- logger.enableLogging()
+logger.enableLogging()
 screen.setGPUAddress(gpu.address)
 
 while true do

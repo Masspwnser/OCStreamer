@@ -1,4 +1,3 @@
-local color = require("external/Color")
 local component = require("component")
 local unicode = require("unicode")
 
@@ -15,10 +14,6 @@ local
 
 	tableInsert,
 	tableConcat,
-
-	colorBlend,
-	colorRGBToInteger,
-	colorIntegerToRGB,
 
 	unicodeLen,
 	unicodeSub,
@@ -52,10 +47,6 @@ local
 
 	table.insert,
 	table.concat,
-
-	color.blend,
-	color.RGBToInteger,
-	color.integerToRGB,
 
 	unicode.len,
 	unicode.sub,
@@ -258,153 +249,6 @@ local function set(x, y, background, foreground, char)
 	end
 end
 
-local function drawRectangle(x, y, width, height, background, foreground, char, transparency)
-	local temp
-
-	-- Clipping left
-	if x < drawLimitX1 then
-		width = width - drawLimitX1 + x
-		x = drawLimitX1
-	end
-
-	-- Right
-	temp = x + width - 1
-	if temp > drawLimitX2 then
-		width = width - temp + drawLimitX2
-	end
-
-	-- Top
-	if y < drawLimitY1 then
-		height = height - drawLimitY1 + y
-		y = drawLimitY1
-	end
-
-	-- Bottom
-	temp = y + height - 1
-	if temp > drawLimitY2 then
-		height = height - temp + drawLimitY2
-	end
-
-	temp = bufferWidth * (y - 1) + x
-
-	local indexStepOnEveryLine = bufferWidth - width
-
-	if transparency then
-		for j = 1, height do
-			for i = 1, width do
-				newFrameBackgrounds[temp],
-				newFrameForegrounds[temp] =
-					colorBlend(newFrameBackgrounds[temp], background, transparency),
-					colorBlend(newFrameForegrounds[temp], background, transparency)
-
-				temp = temp + 1
-			end
-
-			temp = temp + indexStepOnEveryLine
-		end
-	else
-		for j = 1, height do
-			for i = 1, width do
-				newFrameBackgrounds[temp],
-				newFrameForegrounds[temp],
-				newFrameChars[temp] = background, foreground, char
-
-				temp = temp + 1
-			end
-
-			temp = temp + indexStepOnEveryLine
-		end
-	end
-end
-
-local function blur(x, y, width, height, radius, color, transparency)
-	local temp
-
-	-- Clipping left
-	if x < drawLimitX1 then
-		width = width - drawLimitX1 + x
-		x = drawLimitX1
-	end
-
-	-- Right
-	temp = x + width - 1
-	if temp > drawLimitX2 then
-		width = width - temp + drawLimitX2
-	end
-
-	-- Top
-	if y < drawLimitY1 then
-		height = height - drawLimitY1 + y
-		y = drawLimitY1
-	end
-
-	-- Bottom
-	temp = y + height - 1
-	if temp > drawLimitY2 then
-		height = height - temp + drawLimitY2
-	end
-
-	local screenIndex, indexStepOnEveryLine, buffer, bufferIndex, rSum, gSum, bSum, rSumFg, gSumFg, bSumFg, r, g, b =
-		bufferWidth * (y - 1) + x,
-		bufferWidth - width,
-		{},
-		1
-
-	-- Copying
-	temp = screenIndex
-
-	if color then
-		for j = 1, height do
-			for i = 1, width do
-				buffer[bufferIndex] = colorBlend(newFrameBackgrounds[temp], color, transparency)
-
-				temp, bufferIndex = temp + 1, bufferIndex + 1
-			end
-
-			temp = temp + indexStepOnEveryLine
-		end
-	else
-		for j = 1, height do
-			for i = 1, width do
-				buffer[bufferIndex] = newFrameBackgrounds[temp]
-
-				temp, bufferIndex = temp + 1, bufferIndex + 1
-			end
-
-			temp = temp + indexStepOnEveryLine
-		end
-	end
-
-	-- Blurring
-	local rSum, gSum, bSum, count, r, g, b
-
-	for j = 1, height do
-		for i = 1, width do
-			rSum, gSum, bSum, count = 0, 0, 0, 0
-
-			for jr = mathMax(1, j - radius), mathMin(j + radius, height) do
-				for ir = mathMax(1, i - radius), mathMin(i + radius, width) do
-					r, g, b = colorIntegerToRGB(buffer[width * (jr - 1) + ir])
-					rSum, gSum, bSum, count = rSum + r, gSum + g, bSum + b, count + 1
-				end
-			end
-
-			-- Calculatin average channels value
-			r, g, b = rSum / count, gSum / count, bSum / count
-			-- Faster than math.floor
-			r, g, b = r - r % 1, g - g % 1, b - b % 1
-
-			newFrameBackgrounds[screenIndex] = colorRGBToInteger(r, g, b)
-			newFrameForegrounds[screenIndex] = 0x0
-			newFrameChars[screenIndex] = " "
-
-			screenIndex = screenIndex + 1
-		end
-
-		screenIndex = screenIndex + indexStepOnEveryLine
-	end
-end
-
 local function clear(color, transparency)
 	drawRectangle(1, 1, bufferWidth, bufferHeight, color or 0x0, 0x000000, " ", transparency)
 end
@@ -524,45 +368,6 @@ local function drawPolygon(centerX, centerY, radiusX, radiusY, background, foreg
 	rasterizePolygon(centerX, centerY, radiusX, radiusY, countOfEdges, function(x, y)
 		set(x, y, background, foreground, char)
 	end)
-end
-
-local function drawText(x, y, textColor, text, transparency)
-	if y < drawLimitY1 or y > drawLimitY2 then
-		return
-	end
-
-	local
-		charIndex,
-		screenIndex,
-
-		char,
-		charWlen =
-			1,
-			bufferWidth * (y - 1) + x
-	
-	for charIndex = 1, unicodeLen(text) do
-		char = unicodeSub(text, charIndex, charIndex)
-		charWlen = unicodeWlenCache[char]
-				
-		if not charWlen then
-			charWlen = unicodeWlen(char)
-			unicodeWlenCache[char] = charWlen
-		end
-
-		for i = 1, charWlen do
-			if x >= drawLimitX1 and x + charWlen - 1 <= drawLimitX2 then
-				if transparency then
-					newFrameForegrounds[screenIndex] = colorBlend(newFrameBackgrounds[screenIndex], textColor, transparency)
-				else
-					newFrameForegrounds[screenIndex] = textColor
-				end
-
-				newFrameChars[screenIndex] = i == 1 and char or " "
-			end
-
-			x, screenIndex = x + 1, screenIndex + 1
-		end
-	end
 end
 
 local function drawImage(x, y, picture, blendForeground)
