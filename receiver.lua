@@ -19,8 +19,8 @@ function mainLoop()
         logger.log("Start of loop")
         handle:write(request)
         logger.log("Requested an image")
-        local signature, encodingMethod, width, height = functions.readMetadata(handle)
-        local picture = functions.readPixelData(handle, encodingMethod, width, height)
+        local width, height = functions.readMetadata(handle)
+        local picture = functions.readPixelData(handle, width, height)
         logger.log("Finished loading image into memory")
         screen.drawImage(0, 0, picture, false)
         logger.log("Finished drawing")
@@ -29,7 +29,7 @@ function mainLoop()
     end
 end
 
-logger.enableLogging()
+--logger.enableLogging()
 screen.setGPUAddress(gpu.address)
 
 while true do

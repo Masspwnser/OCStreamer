@@ -115,7 +115,8 @@ public class Image {
     private static final double Xp0Yp1 = 5.0d / 16.0d;
     private static final double Xm1Y1 = 3.0d / 16.0d;
 
-    static Image dither(Image image, double intensity) {
+    static Image dither(Image image) {
+        double intensity = 1;
         for (int y = 0; y < image.height; y++) {
             for (int x = 0; x < image.width; x++) {
 
