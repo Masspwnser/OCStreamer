@@ -12,7 +12,7 @@ local request = 'r'
 function mainLoop()
     if not handle then
         handle = internet.open("127.0.0.1", 54321)
-        -- handle:setTimeout(1)
+        handle:setTimeout(0.05)
     end
 
     while true do
@@ -29,7 +29,7 @@ function mainLoop()
     end
 end
 
---logger.enableLogging()
+-- logger.enableLogging()
 screen.setGPUAddress(gpu.address)
 
 while true do

@@ -1,4 +1,4 @@
-package com.evan;
+package com.evan.encoding;
 
 
 public class Color {

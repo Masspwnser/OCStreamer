@@ -1,8 +1,6 @@
-package com.evan;
+package com.evan.encoding;
 
-import java.awt.image.WritableRaster;
 import java.awt.image.BufferedImage;
-import java.awt.image.DataBufferByte;
 import java.util.ArrayList;
 import java.util.HashMap;
 
