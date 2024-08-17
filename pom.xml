@@ -16,7 +16,7 @@
     <dependencies>
 
         <dependency>
-            <groupId>org.openjfx</groupId>
+            <groupId>org.openjfx</groupId>g
             <artifactId>javafx</artifactId>
             <version>23-ea+22</version>
             <type>pom</type>
