@@ -7,8 +7,6 @@ local gpu = component.gpu
 local internet = require("internet")
 local handle
 
-local request = 'r'
-
 function mainLoop()
     if not handle then
         handle = internet.open("127.0.0.1", 54321)
@@ -17,8 +15,6 @@ function mainLoop()
 
     while true do
         logger.log("Start of loop")
-        handle:write(request)
-        logger.log("Requested an image")
         local width, height = functions.readMetadata(handle)
         local picture = functions.readPixelData(handle, width, height)
         logger.log("Finished loading image into memory")
