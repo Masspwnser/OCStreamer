@@ -5,25 +5,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 public class Image {
-    public int width;
-    public int height;
-    public Color[][] pixels;
-
-    public Image(javafx.scene.image.Image image) {
-        this.width = (int) image.getWidth();
-        this.height = (int) image.getHeight();
-        this.pixels = new Color[this.height][this.width];
-
-        for (int y = 0; y < this.height; y++) {
-            for (int x = 0; x < this.width; x++) {
-                this.pixels[y][x] = new Color(image.getPixelReader().getArgb(x, y));
-            }
-        }
-    }
+    public final int width;
+    public final int height;
+    public final Color[][] pixels;
 
     public Image(BufferedImage image) {
-        this.width = (int) image.getWidth();
-        this.height = (int) image.getHeight();
+        this.width = image.getWidth();
+        this.height = image.getHeight();
         this.pixels = new Color[this.height][this.width];
         for (int y = 0; y < this.height; y++) {
             for (int x = 0; x < this.width; x++) {
@@ -38,7 +26,8 @@ public class Image {
 
     private static Color[][] getBraiileArray(Image image, int fromX, int fromY) {
         Color[][] brailleArray = new Color[4][2];
-        int imageX, imageY;
+        int imageX;
+        int imageY;
 
         for (int y = 0; y < 4; y++) {
             for (int x = 0; x < 2; x++) {
@@ -57,11 +46,11 @@ public class Image {
     }
 
     private static double getColorDistance(Color myColor) {
-        return Math.pow((double) myColor.red, 2) + Math.pow((double) myColor.green, 2) + Math.pow((double) myColor.blue, 2);
+        return Math.pow(myColor.red, 2) + Math.pow(myColor.green, 2) + Math.pow(myColor.blue, 2);
     }
 
     private static double getChannelsDelta(Color color1, Color color2) {
-        return Math.pow((double) color1.red - color2.red, 2) + Math.pow((double) color1.green - color2.green, 2) + Math.pow((double) color1.blue - color2.blue, 2);
+        return Math.pow(color1.red - color2.red, 2) + Math.pow(color1.green - color2.green, 2) + Math.pow(color1.blue - color2.blue, 2);
     }
 
     private static Color getBestMatch(Color color1, Color color2, Color targetColor) {
