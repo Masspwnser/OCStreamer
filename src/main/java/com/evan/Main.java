@@ -40,15 +40,15 @@ public class Main {
             new Actions(driver).sendKeys("f").perform(); // Attempt fullscreen
         }
 
-        // (help) Prevent computer-breaking memory leak vulnerability
-        // Runtime.getRuntime().addShutdownHook(new Thread() {
-        //     @Override
-        //     public void run() {
-        //         if (driver != null) {
-        //             driver.quit();
-        //         }
-        //     }
-        //  });
+        // Prevent computer-breaking memory leak vulnerability
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+            @Override
+            public void run() {
+                if (driver != null) {
+                    driver.quit();
+                }
+            }
+         });
          return driver;
     }
 
