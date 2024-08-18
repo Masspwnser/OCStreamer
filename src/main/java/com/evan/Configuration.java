@@ -1,14 +1,18 @@
 package com.evan;
 
 import java.awt.Dimension;
+import java.io.File;
 import java.io.FileInputStream;
 import java.util.Properties;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
+
+import org.apache.commons.io.monitor.FileAlterationListenerAdaptor;
+import org.apache.commons.io.monitor.FileAlterationObserver;
 
 public class Configuration {
-    private static final String FILE_NAME = "properties.cfg";
+    private static final Logger logger = Logger.getLogger(Configuration.class.getName());
+
+    private static final File CONFIG_FILE = new File("properties.cfg");
 
     private static final Properties prop = new Properties();
     private static Configuration instance = null;
@@ -17,25 +21,27 @@ public class Configuration {
     private static int height;
     private static boolean dither;
     private static boolean headless;
+    private static boolean fullscreen;
     private static String browserBinary;
     private static String url;
 
     static {
-        // Every delay seconds, reload the configuration file
-        long delay = TimeUnit.SECONDS.toMillis(30);
-        Timer timer = new Timer("configuration-reloader", true);
-        TimerTask task = new TimerTask() {
+        // Reload configuration on change
+        FileAlterationObserver observer = new FileAlterationObserver(CONFIG_FILE);
+        observer.addListener(new FileAlterationListenerAdaptor() {
             @Override
-            public void run() {
-                System.out.println("Re-loading configuration");
+            public void onFileCreate(File file) {
                 loadConfiguration();
             }
-        };
-        timer.scheduleAtFixedRate(task, delay, delay);
+
+            @Override
+            public void onFileChange(File file) {
+                loadConfiguration();
+            }
+        });
     }
 
     private Configuration() {
-        System.out.println("Loading configuration");
         loadConfiguration();
     }
 
@@ -47,16 +53,18 @@ public class Configuration {
     }
 
     private static synchronized void loadConfiguration() {
-        try (FileInputStream fis = new FileInputStream(FILE_NAME)) {
+        logger.info("Loading configuration");
+        try (FileInputStream fis = new FileInputStream(CONFIG_FILE)) {
             prop.load(fis);
         } catch (Exception e) {
-            System.out.println("Error loading configuration");
+            logger.severe("Error loading configuration");
         }
 
         width = Integer.parseInt(prop.getProperty("width", "160"));
         height = Integer.parseInt(prop.getProperty("height", "50"));
         dither = Boolean.parseBoolean(prop.getProperty("dither", "false"));
         headless = Boolean.parseBoolean(prop.getProperty("headless", "true"));
+        fullscreen = Boolean.parseBoolean(prop.getProperty("fullscreen", "true"));
         browserBinary = prop.getProperty("browser.binary", "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe");
         url = prop.getProperty("url", "https://www.twitch.tv/cerbervt");
     }
@@ -85,5 +93,9 @@ public class Configuration {
 
     public boolean isHeadless() {
         return headless;
+    }
+
+    public boolean isFullscreen() {
+        return fullscreen;
     }
 }
