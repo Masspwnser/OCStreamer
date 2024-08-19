@@ -40,6 +40,7 @@ public class WebServer {
             os.write(byteImage);
             os.close();
             byteImage = browser.getScreenshot().getByteArray();
+            logger.fine("Sent frame to client");
         }
     }
 
@@ -52,6 +53,7 @@ public class WebServer {
             os.write(response.getBytes());
             os.close();
             byteImage = browser.getScreenshot().getByteArray();
+            logger.fine("Sent READY to client, beginning stream");
         }
     }
 }
