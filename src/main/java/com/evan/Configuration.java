@@ -25,7 +25,9 @@ public class Configuration {
     private static String browserBinary;
     private static String url;
 
-    static {
+    private Configuration() {
+        loadConfiguration();
+
         // Reload configuration on change
         FileAlterationObserver observer = new FileAlterationObserver(CONFIG_FILE);
         observer.addListener(new FileAlterationListenerAdaptor() {
@@ -39,10 +41,6 @@ public class Configuration {
                 loadConfiguration();
             }
         });
-    }
-
-    private Configuration() {
-        loadConfiguration();
     }
 
     public static synchronized Configuration instance() {
