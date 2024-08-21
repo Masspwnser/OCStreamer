@@ -5,21 +5,22 @@ import com.evan.Configuration;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.logging.Logger;
 
 import org.apache.commons.io.output.ByteArrayOutputStream;
 
 public class Image {
+    private static final Logger logger = Logger.getLogger(Image.class.getName());
+
     public final int width;
     public final int height;
 
     private final Color[][] pixels;
-    private final Pixel[][] braillePixels;
 
     public Image(BufferedImage image) {
         this.width = image.getWidth();
         this.height = image.getHeight();
         this.pixels = new Color[this.height][this.width];
-        this.braillePixels = new Pixel[this.height][this.width];
         for (int y = 0; y < this.height; y++) {
             for (int x = 0; x < this.width; x++) {
                 this.pixels[y][x] = new Color(image.getRGB(x, y));
@@ -28,39 +29,27 @@ public class Image {
         if (Configuration.instance().shouldDither()) {
             dither();
         }
-        for (int y = 0; y < this.height; y++) {
-            for (int x = 0; x < this.width; x++) {
-                braillePixels[y][x] = getBraillePixel(x, y);
-            }
-        }
     }
 
     public byte[] getByteArray() {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
         Pixel pixel;
         // 16-bit width and height
-        out.write((byte)this.width);
-        out.write((byte)(this.width >> 8));
-        out.write((byte)this.height);
-        out.write((byte)(this.height >> 8));
-        for (int y = 0; y < this.height; y++) {
-            for (int x = 0; x < this.width; x++) {
-                pixel = braillePixels[y][x];
-                out.write((byte) Palette.getClosestIndex(pixel.background));
-                out.write((byte) Palette.getClosestIndex(pixel.foreground));
+        stream.write((byte) Configuration.instance().getOCScreenDimensions().width);
+        stream.write((byte) (Configuration.instance().getOCScreenDimensions().width >> 8));
+        stream.write((byte) Configuration.instance().getOCScreenDimensions().height);
+        stream.write((byte) (Configuration.instance().getOCScreenDimensions().height >> 8));
+        for (int y = 0; y < this.height; y+=4) {
+            for (int x = 0; x < this.width; x+=2) {
+                pixel = getBraillePixel(x, y);
+                stream.write((byte) Palette.getClosestIndex(pixel.background));
+                stream.write((byte) Palette.getClosestIndex(pixel.foreground));
                 // Bitpack the braille to reduce throughput
                 byte[] utf8Bytes = pixel.symbol.getBytes(StandardCharsets.UTF_8);
-                out.write((byte) (((utf8Bytes[1] & 0x03) << 6) | (utf8Bytes[2] & 0x3F)));
+                stream.write((byte) (((utf8Bytes[1] & 0x03) << 6) | (utf8Bytes[2] & 0x3F)));
             }
         }
-        byte[] retval = out.toByteArray();
-        try {
-            out.flush();
-            out.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return retval;
+        return stream.toByteArray();
     }
 
     private static String getBrailleChar(int[][] brailleMatrix) {

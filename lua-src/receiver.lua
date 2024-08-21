@@ -39,7 +39,7 @@ function mainLoop()
     end
 end
 
-logger.enableLogging()
+--logger.enableLogging()
 screen.setGPUAddress(gpu.address)
 
 while true do

@@ -1,6 +1,5 @@
 local bit32 = require("bit32")
 local string = require("string")
-local logger = require("Logger")
 
 local Functions = {}
 local picture = {}
@@ -9,7 +8,7 @@ local palette = {0x000000, 0x000040, 0x000080, 0x0000BF, 0x0000FF, 0x002400, 0x0
 
 local function readPixel(byte, pos)
 	local pixelType = math.fmod(pos,3)
-	if pixelType == 0 or pixelType == 1 then -- Color value
+	if pixelType <= 1 then -- Color value
 		return palette[byte + 1]
 	else -- Braille pixel
 		local byteArray = {0xE2}
@@ -30,7 +29,6 @@ function Functions.readPixelData(handle)
 			picture[2] = string.byte(chunk, 3) + bit32.lshift(string.byte(chunk, 4), 8)
 			pixelPos = 3
 			chunkPos = 5
-			logger.log("Got headers height: " .. picture[2] .. " width: " .. picture[1])
 		end
 		while chunkPos <= chunkSize do
 			picture[pixelPos] = readPixel(string.byte(chunk, chunkPos), pixelPos)
