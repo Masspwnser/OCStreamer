@@ -22,6 +22,7 @@ public class Configuration {
     private static boolean dither;
     private static boolean headless;
     private static boolean fullscreen;
+    private static boolean mute;
     private static String browserBinary;
     private static String url;
 
@@ -63,6 +64,7 @@ public class Configuration {
         dither = Boolean.parseBoolean(prop.getProperty("dither", "false"));
         headless = Boolean.parseBoolean(prop.getProperty("headless", "true"));
         fullscreen = Boolean.parseBoolean(prop.getProperty("fullscreen", "true"));
+        mute = Boolean.parseBoolean(prop.getProperty("mute", "true"));
         browserBinary = prop.getProperty("browser.binary", "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe");
         url = prop.getProperty("url", "https://www.twitch.tv/cerbervt");
     }
@@ -95,5 +97,9 @@ public class Configuration {
 
     public boolean isFullscreen() {
         return fullscreen;
+    }
+
+    public boolean isMute() {
+        return mute;
     }
 }

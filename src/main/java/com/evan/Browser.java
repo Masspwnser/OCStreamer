@@ -57,6 +57,9 @@ public class Browser  {
         if (Configuration.instance().isHeadless()) {
             chromeOptions.addArguments("--headless");
         }
+        if (Configuration.instance().isMute()) {
+            chromeOptions.addArguments("--mute-audio");
+        }
         WebDriver chromeDriver = new ChromeDriver(chromeOptions);
         chromeDriver.get(Configuration.instance().getUrl());
 

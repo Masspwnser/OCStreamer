@@ -30,16 +30,12 @@ function mainLoop()
         logger.log("Requesting stream data from server")
         handle = internet.request(STREAM_ENDPOINT)
         logger.log("Received a response")
-        for chunk in handle do
-            logger.log("Handle size: " .. #handle .. " Chunk size: " .. #chunk)
-        end
-        logger.log("Finished loading all chunks")
-        -- local picture = functions.readPixelData(handle)
-        -- logger.log("Finished loading image into memory")
-        -- screen.drawImage(0, 0, picture, false)
-        -- logger.log("Finished drawing")
-        -- screen.update()
-        -- logger.log("Finished rendering")
+        local picture = functions.readPixelData(handle)
+        logger.log("Finished loading image into memory")
+        screen.drawImage(0, 0, picture, false)
+        logger.log("Finished drawing")
+        screen.update()
+        logger.log("Finished rendering")
     end
 end
 

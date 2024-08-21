@@ -50,7 +50,7 @@ public class Image {
                 out.write((byte) Palette.getClosestIndex(pixel.foreground));
                 // Bitpack the braille to reduce throughput
                 byte[] utf8Bytes = pixel.symbol.getBytes(StandardCharsets.UTF_8);
-                out.write(((utf8Bytes[1] & 0x03) << 6) | (utf8Bytes[2] & 0x3F));
+                out.write((byte) (((utf8Bytes[1] & 0x03) << 6) | (utf8Bytes[2] & 0x3F)));
             }
         }
         byte[] retval = out.toByteArray();
