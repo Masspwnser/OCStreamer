@@ -6,7 +6,10 @@ import java.io.FileInputStream;
 import java.util.Properties;
 import java.util.logging.Logger;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.commons.io.monitor.FileAlterationListenerAdaptor;
+import org.apache.commons.io.monitor.FileAlterationMonitor;
 import org.apache.commons.io.monitor.FileAlterationObserver;
 
 public class Configuration {
@@ -30,7 +33,7 @@ public class Configuration {
         loadConfiguration();
 
         // Reload configuration on change
-        FileAlterationObserver observer = new FileAlterationObserver(CONFIG_FILE);
+        FileAlterationObserver observer = new FileAlterationObserver(FileUtils.current(), FileFilterUtils.suffixFileFilter(".cfg"));
         observer.addListener(new FileAlterationListenerAdaptor() {
             @Override
             public void onFileCreate(File file) {
@@ -42,6 +45,12 @@ public class Configuration {
                 loadConfiguration();
             }
         });
+        FileAlterationMonitor monitor = new FileAlterationMonitor(500, observer);
+        try {
+            monitor.start();
+        } catch (Exception e) {
+            logger.severe(e.getMessage());
+        }
     }
 
     public static synchronized Configuration instance() {
