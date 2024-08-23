@@ -4,26 +4,36 @@ import com.evan.encoding.Image;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
-import java.awt.Dimension;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.time.Duration;
 import java.util.logging.Logger;
 
-import org.openqa.selenium.*;
+import org.openqa.selenium.OutputType;
+import org.openqa.selenium.TakesScreenshot;
+import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.firefox.FirefoxDriver;
+import org.openqa.selenium.firefox.FirefoxOptions;
 import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
 public class Browser  {
     private static final Logger logger = Logger.getLogger(Browser.class.getName());
+
+    private static Browser instance = null;
     
     private final WebDriver driver;
 
-    public Browser() {
+    private Browser() {
         // TODO Support other browsers
-        driver = startChromeDriver();
+        driver = getDriver();
+        
+        if (Configuration.instance().isFullscreen()) {
+            new WebDriverWait(driver, Duration.ofSeconds(10));
+            new Actions(driver).sendKeys("f").perform(); // Attempt fullscreen
+        }
 
         // Make absolutely sure the browser dies
         Runtime.getRuntime().addShutdownHook(new Thread() {
@@ -34,6 +44,21 @@ public class Browser  {
                 }
             }
         });
+    }
+
+    public static synchronized Browser instance() {
+        if (instance == null) {
+            instance = new Browser();
+        }
+        return instance;
+    }
+
+    public void navigate(String newUrl) {
+        driver.get(newUrl);
+        if (Configuration.instance().isFullscreen()) {
+            new WebDriverWait(driver, Duration.ofSeconds(5));
+            new Actions(driver).sendKeys("f").perform(); // Attempt fullscreen
+        }
     }
 
     public Image getScreenshot() throws IOException {
@@ -50,24 +75,40 @@ public class Browser  {
 
         return new Image(resized);
     }
-    
-    private WebDriver startChromeDriver() {
-        ChromeOptions chromeOptions = new ChromeOptions();
-        chromeOptions.setBinary(Configuration.instance().getBrowserBinaryPath());
-        if (Configuration.instance().isHeadless()) {
-            chromeOptions.addArguments("--headless");
-        }
-        if (Configuration.instance().isMute()) {
-            chromeOptions.addArguments("--mute-audio");
-        }
-        WebDriver chromeDriver = new ChromeDriver(chromeOptions);
-        chromeDriver.get(Configuration.instance().getUrl());
 
-        new WebDriverWait(chromeDriver, Duration.ofSeconds(10));
-        if (Configuration.instance().isFullscreen()) {
-            new Actions(chromeDriver).sendKeys("f").perform(); // Attempt fullscreen
+    // This sucks, but not sure there's a better way to get multi-browser support
+    private WebDriver getDriver() {
+        WebDriver webDriver = null;
+        if (Configuration.instance().getBrowserBinaryPath().toLowerCase().contains("firefox")) {
+            FirefoxOptions options = new FirefoxOptions();
+            options.setBinary(Configuration.instance().getBrowserBinaryPath());
+            if (Configuration.instance().isHeadless()) {
+                options.addArguments("--headless");
+            }
+            // TODO figure out mute for firefox
+            // TODO this can be automated with commandline arguments
+            if (!Configuration.instance().getUserDataPath().equals("")) {
+                options.addArguments("--profile");
+                options.addArguments(Configuration.instance().getUserDataPath());
+            }
+            webDriver = new FirefoxDriver(options);
+            webDriver.get(Configuration.instance().getUrl());
+        } else if (Configuration.instance().getBrowserBinaryPath().toLowerCase().contains("chrome")) {
+            ChromeOptions options = new ChromeOptions();
+            options.setBinary(Configuration.instance().getBrowserBinaryPath());
+            if (Configuration.instance().isHeadless()) {
+                options.addArguments("--headless");
+            }
+            if (Configuration.instance().isMute()) {
+                options.addArguments("--mute-audio");
+            }
+            if (!Configuration.instance().getUserDataPath().equals("")) {
+                options.addArguments("--profile");
+                options.addArguments(Configuration.instance().getUserDataPath());
+            }
+            webDriver = new ChromeDriver(options);
+            webDriver.get(Configuration.instance().getUrl());
         }
-
-        return chromeDriver;
+        return webDriver;
     }
 }

@@ -27,6 +27,7 @@ public class Configuration {
     private static boolean fullscreen;
     private static boolean mute;
     private static String browserBinary;
+    private static String userData;
     private static String url;
 
     private Configuration() {
@@ -75,7 +76,12 @@ public class Configuration {
         fullscreen = Boolean.parseBoolean(prop.getProperty("fullscreen", "true"));
         mute = Boolean.parseBoolean(prop.getProperty("mute", "true"));
         browserBinary = prop.getProperty("browser.binary", "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe");
+        userData = prop.getProperty("browser.userdata", "");
+        String oldUrl = url;
         url = prop.getProperty("url", "https://www.twitch.tv/cerbervt");
+        if (oldUrl != null && !url.equals(oldUrl)) {
+            Browser.instance().navigate(url);
+        }
     }
 
     public String getUrl() {
@@ -94,6 +100,10 @@ public class Configuration {
 
     public String getBrowserBinaryPath() {
         return browserBinary;
+    }
+
+    public String getUserDataPath() {
+        return userData;
     }
 
     public boolean shouldDither() {

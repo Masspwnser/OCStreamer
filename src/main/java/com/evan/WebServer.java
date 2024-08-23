@@ -12,8 +12,6 @@ import com.sun.net.httpserver.HttpServer;
 public class WebServer {
     private static final Logger logger = Logger.getLogger(WebServer.class.getName());
 
-    private final Browser browser = new Browser();
-
     private byte[] byteImage;
 
     public WebServer() {
@@ -31,29 +29,30 @@ public class WebServer {
 
     class ImageHandler implements HttpHandler {
         @Override
-        public void handle(HttpExchange t) throws IOException {
+        public synchronized void handle(HttpExchange t) throws IOException {
             if (byteImage == null) {
-                byteImage = browser.getScreenshot().getByteArray();
+                logger.warning("Image bytes were NOT ready at time of request.");
+                byteImage = Browser.instance().getScreenshot().getByteArray();
             }
             t.sendResponseHeaders(200, byteImage.length);
             OutputStream os = t.getResponseBody();
             os.write(byteImage);
             os.close();
-            byteImage = browser.getScreenshot().getByteArray();
+            byteImage = Browser.instance().getScreenshot().getByteArray();
             logger.fine("Sent frame to client");
         }
     }
 
     class TestHandler implements HttpHandler {
         @Override
-        public void handle(HttpExchange t) throws IOException {
+        public synchronized void handle(HttpExchange t) throws IOException {
+            byteImage = Browser.instance().getScreenshot().getByteArray();
             String response = "READY";
             t.sendResponseHeaders(200, response.length());
             OutputStream os = t.getResponseBody();
             os.write(response.getBytes());
             os.close();
-            byteImage = browser.getScreenshot().getByteArray();
-            logger.fine("Sent READY to client, beginning stream");
+            logger.info("Started broadcast to client");
         }
     }
 }
