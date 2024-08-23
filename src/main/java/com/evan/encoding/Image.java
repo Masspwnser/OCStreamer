@@ -1,13 +1,21 @@
 package com.evan.encoding;
 
+import com.evan.Configuration;
+
 import java.awt.image.BufferedImage;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.logging.Logger;
+
+import org.apache.commons.io.output.ByteArrayOutputStream;
 
 public class Image {
+    private static final Logger logger = Logger.getLogger(Image.class.getName());
+
     public final int width;
     public final int height;
-    public final Color[][] pixels;
+
+    private final Color[][] pixels;
 
     public Image(BufferedImage image) {
         this.width = image.getWidth();
@@ -18,13 +26,45 @@ public class Image {
                 this.pixels[y][x] = new Color(image.getRGB(x, y));
             }
         }
+        if (Configuration.instance().shouldDither()) {
+            dither();
+        }
     }
 
-    private static String getBrailleChar(int a, int b, int c, int d, int e, int f, int g, int h) {
-        return Character.toString((char) (10240 + 128 * h + 64 * g + 32 * f + 16 * d + 8 * b + 4 * e + 2 * c + a));
+    public byte[] getByteArray() {
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        Pixel pixel;
+        // 16-bit width and height
+        stream.write((byte) Configuration.instance().getOCScreenDimensions().width);
+        stream.write((byte) (Configuration.instance().getOCScreenDimensions().width >> 8));
+        stream.write((byte) Configuration.instance().getOCScreenDimensions().height);
+        stream.write((byte) (Configuration.instance().getOCScreenDimensions().height >> 8));
+        for (int y = 0; y < this.height; y+=4) {
+            for (int x = 0; x < this.width; x+=2) {
+                pixel = getBraillePixel(x, y);
+                stream.write((byte) Palette.getClosestIndex(pixel.background));
+                stream.write((byte) Palette.getClosestIndex(pixel.foreground));
+                // Bitpack the braille to reduce throughput
+                byte[] utf8Bytes = pixel.symbol.getBytes(StandardCharsets.UTF_8);
+                stream.write((byte) (((utf8Bytes[1] & 0x03) << 6) | (utf8Bytes[2] & 0x3F)));
+            }
+        }
+        return stream.toByteArray();
     }
 
-    private static Color[][] getBraiileArray(Image image, int fromX, int fromY) {
+    private static String getBrailleChar(int[][] brailleMatrix) {
+        return Character.toString((char) (10240 + 
+        128 * brailleMatrix[3][1]
+        + 64 * brailleMatrix[3][0]
+        + 32 * brailleMatrix[2][1]
+        + 16 * brailleMatrix[1][1]
+        + 8 * brailleMatrix[0][1]
+        + 4 * brailleMatrix[2][0]
+        + 2 * brailleMatrix[1][0]
+        + brailleMatrix[0][0]));
+    }
+
+    private Color[][] getBraiileArray(int fromX, int fromY) {
         Color[][] brailleArray = new Color[4][2];
         int imageX;
         int imageY;
@@ -34,8 +74,8 @@ public class Image {
                 imageX = fromX + x;
                 imageY = fromY + y;
 
-                if (imageX < image.width && imageY < image.height) {
-                    brailleArray[y][x] = image.pixels[imageY][imageX];
+                if (imageX < this.width && imageY < this.height) {
+                    brailleArray[y][x] = this.pixels[imageY][imageX];
                 } else {
                     brailleArray[y][x] = new Color(0x00000000);
                 }
@@ -57,8 +97,8 @@ public class Image {
         return getChannelsDelta(color1, targetColor) < getChannelsDelta(color2, targetColor) ? color1 : color2;
     }
 
-    static Pixel getBraillePixel(Image image, int fromX, int fromY) {
-        Color[][] brailleArray = getBraiileArray(image, fromX, fromY);
+    private Pixel getBraillePixel(int fromX, int fromY) {
+        Color[][] brailleArray = getBraiileArray(fromX, fromY);
 
         double distance, minDistance = 999999.0d, maxDistance = 0.0d;
         Color minColor = brailleArray[0][0], maxColor = brailleArray[0][0];
@@ -86,12 +126,7 @@ public class Image {
             }
         }
 
-        String brailleChar = getBrailleChar(
-                brailleMatrix[0][0], brailleMatrix[0][1],
-                brailleMatrix[1][0], brailleMatrix[1][1],
-                brailleMatrix[2][0], brailleMatrix[2][1],
-                brailleMatrix[3][0], brailleMatrix[3][1]
-        );
+        String brailleChar = getBrailleChar(brailleMatrix);
 
 
         return new Pixel(minColor, maxColor, 0x00, brailleChar);
@@ -102,190 +137,44 @@ public class Image {
     private static final double Xp0Yp1 = 5.0d / 16.0d;
     private static final double Xm1Y1 = 3.0d / 16.0d;
 
-    static Image dither(Image image) {
+    private void dither() {
         double intensity = 1;
-        for (int y = 0; y < image.height; y++) {
-            for (int x = 0; x < image.width; x++) {
+        for (int y = 0; y < this.height; y++) {
+            for (int x = 0; x < this.width; x++) {
 
-                Color paletteColor = Palette.getClosestColor(image.pixels[y][x]);
-                Color colorDifference = Color.difference(image.pixels[y][x], paletteColor);
+                Color paletteColor = Palette.getClosestColor(this.pixels[y][x]);
+                Color colorDifference = Color.difference(this.pixels[y][x], paletteColor);
 
-                image.pixels[y][x] = paletteColor;
+                this.pixels[y][x] = paletteColor;
 
-                if (x < image.width - 1) {
-                    image.pixels[y][x + 1] = Color.sum(
-                            image.pixels[y][x + 1],
+                if (x < this.width - 1) {
+                    this.pixels[y][x + 1] = Color.sum(
+                            this.pixels[y][x + 1],
                             Color.multiply(colorDifference, Xp1Yp0 * intensity)
                     );
 
-                    if (y < image.height - 1) {
-                        image.pixels[y + 1][x + 1] = Color.sum(
-                                image.pixels[y + 1][x + 1],
+                    if (y < this.height - 1) {
+                        this.pixels[y + 1][x + 1] = Color.sum(
+                                this.pixels[y + 1][x + 1],
                                 Color.multiply(colorDifference, Xp1Yp1 * intensity)
                         );
                     }
                 }
 
-                if (y < image.height - 1) {
-                    image.pixels[y + 1][x] = Color.sum(
-                            image.pixels[y + 1][x],
+                if (y < this.height - 1) {
+                    this.pixels[y + 1][x] = Color.sum(
+                            this.pixels[y + 1][x],
                             Color.multiply(colorDifference, Xp0Yp1 * intensity)
                     );
 
                     if (x > 0) {
-                        image.pixels[y + 1][x - 1] = Color.sum(
-                                image.pixels[y + 1][x - 1],
+                        this.pixels[y + 1][x - 1] = Color.sum(
+                                this.pixels[y + 1][x - 1],
                                 Color.multiply(colorDifference, Xm1Y1 * intensity)
                         );
                     }
                 }
             }
         }
-
-        return image;
-    }
-
-
-    static Pixel getSemiPixel(Image image, int x, int y) {
-        Color upper = image.pixels[y][x], lower = new Color(0xFF, 0x0, 0x0, 0x0);
-
-        if (y < image.height) {
-            lower = image.pixels[y + 1][x];
-        }
-
-        Pixel pixel = new Pixel(upper, lower, 0x00, "▄");
-
-        if (upper.alpha == 0x00) {
-            //Есть и наверху, и внизу
-            if (lower.alpha == 0x00) {
-                pixel.background = upper;
-                pixel.foreground = lower;
-                pixel.alpha = 0x00;
-                pixel.symbol = "▄";
-            }
-            //Есть только наверху, внизу прозрачный
-            else {
-                pixel.background = upper;
-                pixel.foreground = upper;
-                pixel.alpha = 0xFF;
-                pixel.symbol = "▀";
-            }
-        } else {
-            //Нет наверху, но есть внизу
-            if (lower.alpha == 0x00) {
-                pixel.background = upper;
-                pixel.foreground = lower;
-                pixel.alpha = 0xFF;
-                pixel.symbol = "▄";
-            }
-            //Нет ни наверху, ни внизу
-            else {
-                pixel.background = upper;
-                pixel.foreground = lower;
-                pixel.alpha = 0xFF;
-                pixel.symbol = " ";
-            }
-        }
-
-        return pixel;
-    }
-
-    private static HashMap<Integer, HashMap<String, HashMap<Integer, HashMap<Integer, HashMap<Integer, ArrayList<Integer>>>>>> fillHashMap(Integer alpha, String symbol, Integer background, Integer foreground, Integer y, Integer x) {
-        ArrayList<Integer> xs = new ArrayList<>();
-
-        HashMap<Integer, ArrayList<Integer>> ys = new HashMap<>();
-        ys.put(y, xs);
-
-        HashMap<Integer, HashMap<Integer, ArrayList<Integer>>> fs = new HashMap<>();
-        fs.put(foreground, ys);
-
-        HashMap<Integer, HashMap<Integer, HashMap<Integer, ArrayList<Integer>>>> bs = new HashMap<>();
-        bs.put(background, fs);
-
-        HashMap<String, HashMap<Integer, HashMap<Integer, HashMap<Integer, ArrayList<Integer>>>>> ss = new HashMap<>();
-        ss.put(symbol, bs);
-
-        HashMap<Integer, HashMap<String, HashMap<Integer, HashMap<Integer, HashMap<Integer, ArrayList<Integer>>>>>> as = new HashMap<>();
-        as.put(alpha, ss);
-
-        return as;
-    }
-
-    private static void groupPixel(HashMap<Integer, HashMap<String, HashMap<Integer, HashMap<Integer, HashMap<Integer, ArrayList<Integer>>>>>> groupedImage, Integer alpha, String symbol, Integer background, Integer foreground, Integer y, Integer x) {
-        HashMap<Integer, HashMap<String, HashMap<Integer, HashMap<Integer, HashMap<Integer, ArrayList<Integer>>>>>> filledHashMap = fillHashMap(alpha, symbol, background, foreground, y, x);
-
-        if (!groupedImage.containsKey(alpha)) {
-            groupedImage.put(
-                    alpha,
-                    filledHashMap.get(alpha)
-            );
-        }
-
-        if (!groupedImage.get(alpha).containsKey(symbol)) {
-            groupedImage.get(alpha).put(
-                    symbol,
-                    filledHashMap.get(alpha).get(symbol)
-            );
-        }
-
-        if (!groupedImage.get(alpha).get(symbol).containsKey(background)) {
-            groupedImage.get(alpha).get(symbol).put(
-                    background,
-                    filledHashMap.get(alpha).get(symbol).get(background)
-            );
-        }
-
-        if (!groupedImage.get(alpha).get(symbol).get(background).containsKey(foreground)) {
-            groupedImage.get(alpha).get(symbol).get(background).put(
-                    foreground,
-                    filledHashMap.get(alpha).get(symbol).get(background).get(foreground)
-            );
-        }
-
-        if (!groupedImage.get(alpha).get(symbol).get(background).get(foreground).containsKey(y)) {
-            groupedImage.get(alpha).get(symbol).get(background).get(foreground).put(
-                    y,
-                    filledHashMap.get(alpha).get(symbol).get(background).get(foreground).get(y)
-            );
-        }
-
-        groupedImage.get(alpha).get(symbol).get(background).get(foreground).get(y).add(x);
-    }
-
-    static HashMap<Integer, HashMap<String, HashMap<Integer, HashMap<Integer, HashMap<Integer, ArrayList<Integer>>>>>> groupAsBraille(Image image) {
-        HashMap<Integer, HashMap<String, HashMap<Integer, HashMap<Integer, HashMap<Integer, ArrayList<Integer>>>>>> groupedImage = new HashMap<>();
-        Pixel pixel;
-        int xCounter = 1, yCounter = 1;
-
-        for (int y = 0; y < image.height; y += 4) {
-            for (int x = 0; x < image.width; x += 2) {
-                pixel = getBraillePixel(image, x, y);
-                groupPixel(groupedImage, pixel.alpha, pixel.symbol, Palette.getClosestIndex(pixel.background), Palette.getClosestIndex(pixel.foreground), yCounter, xCounter);
-
-                xCounter++;
-            }
-
-            xCounter = 1;
-            yCounter++;
-        }
-
-        return groupedImage;
-    }
-
-    static HashMap<Integer, HashMap<String, HashMap<Integer, HashMap<Integer, HashMap<Integer, ArrayList<Integer>>>>>> groupAsSemiPixel(Image image) {
-        HashMap<Integer, HashMap<String, HashMap<Integer, HashMap<Integer, HashMap<Integer, ArrayList<Integer>>>>>> groupedImage = new HashMap<>();
-        Pixel pixel;
-        int yCounter = 1;
-
-        for (int y = 0; y < image.height; y += 2) {
-            for (int x = 0; x < image.width; x++) {
-                pixel = getSemiPixel(image, x, y);
-                groupPixel(groupedImage, pixel.alpha, pixel.symbol, Palette.getClosestIndex(pixel.background), Palette.getClosestIndex(pixel.foreground), yCounter, x + 1);
-            }
-
-            yCounter++;
-        }
-
-        return groupedImage;
     }
 }

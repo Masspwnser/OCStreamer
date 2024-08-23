@@ -6,7 +6,10 @@ import java.io.FileInputStream;
 import java.util.Properties;
 import java.util.logging.Logger;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.commons.io.monitor.FileAlterationListenerAdaptor;
+import org.apache.commons.io.monitor.FileAlterationMonitor;
 import org.apache.commons.io.monitor.FileAlterationObserver;
 
 public class Configuration {
@@ -22,12 +25,16 @@ public class Configuration {
     private static boolean dither;
     private static boolean headless;
     private static boolean fullscreen;
+    private static boolean mute;
     private static String browserBinary;
+    private static String userData;
     private static String url;
 
-    static {
+    private Configuration() {
+        loadConfiguration();
+
         // Reload configuration on change
-        FileAlterationObserver observer = new FileAlterationObserver(CONFIG_FILE);
+        FileAlterationObserver observer = new FileAlterationObserver(FileUtils.current(), FileFilterUtils.suffixFileFilter(".cfg"));
         observer.addListener(new FileAlterationListenerAdaptor() {
             @Override
             public void onFileCreate(File file) {
@@ -39,10 +46,12 @@ public class Configuration {
                 loadConfiguration();
             }
         });
-    }
-
-    private Configuration() {
-        loadConfiguration();
+        FileAlterationMonitor monitor = new FileAlterationMonitor(500, observer);
+        try {
+            monitor.start();
+        } catch (Exception e) {
+            logger.severe(e.getMessage());
+        }
     }
 
     public static synchronized Configuration instance() {
@@ -65,8 +74,14 @@ public class Configuration {
         dither = Boolean.parseBoolean(prop.getProperty("dither", "false"));
         headless = Boolean.parseBoolean(prop.getProperty("headless", "true"));
         fullscreen = Boolean.parseBoolean(prop.getProperty("fullscreen", "true"));
+        mute = Boolean.parseBoolean(prop.getProperty("mute", "true"));
         browserBinary = prop.getProperty("browser.binary", "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe");
+        userData = prop.getProperty("browser.userdata", "");
+        String oldUrl = url;
         url = prop.getProperty("url", "https://www.twitch.tv/cerbervt");
+        if (oldUrl != null && !url.equals(oldUrl)) {
+            Browser.instance().navigate(url);
+        }
     }
 
     public String getUrl() {
@@ -87,6 +102,10 @@ public class Configuration {
         return browserBinary;
     }
 
+    public String getUserDataPath() {
+        return userData;
+    }
+
     public boolean shouldDither() {
         return dither;
     }
@@ -97,5 +116,9 @@ public class Configuration {
 
     public boolean isFullscreen() {
         return fullscreen;
+    }
+
+    public boolean isMute() {
+        return mute;
     }
 }
