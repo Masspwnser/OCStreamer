@@ -41,6 +41,7 @@ end
 
 --logger.enableLogging()
 screen.setGPUAddress(gpu.address)
+functions.initialize()
 
 while true do
     local success, reason = pcall(mainLoop)
@@ -50,5 +51,4 @@ while true do
     end
 end
 
-handle:close()
 logger.close()
