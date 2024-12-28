@@ -55,52 +55,44 @@ local function setGPUAddress(address)
     flush()
 end
 
-local function drawImage(x, y, picture, blendForeground)
-    logger.log("Checkpoint 1")
-    local imageWidth, imageHeight, pictureIndex, temp = picture[1], picture[2], 3
+local function drawImage(x, y, image, blendForeground)
+    local imageWidth, imageHeight = image.width, image.height
     local clippedImageWidth, clippedImageHeight = imageWidth, imageHeight
-
-    -- Clipping left
-    if (x < drawLimitX1) then
-        temp = drawLimitX1 - x
-        clippedImageWidth, x, pictureIndex = clippedImageWidth - temp, drawLimitX1, pictureIndex + temp * 3
+    
+    -- Clipping calculations
+    if x < drawLimitX1 then
+        local temp = drawLimitX1 - x
+        clippedImageWidth = clippedImageWidth - temp
+        x = drawLimitX1
     end
-
-    -- Right
-    temp = x + clippedImageWidth - 1
-
-    if (temp > drawLimitX2) then
-        clippedImageWidth = clippedImageWidth - temp + drawLimitX2
+    
+    if x + clippedImageWidth - 1 > drawLimitX2 then
+        clippedImageWidth = drawLimitX2 - x + 1
     end
-
-    -- Top
-    if (y < drawLimitY1) then
-        temp = drawLimitY1 - y
-        clippedImageHeight, y, pictureIndex = clippedImageHeight - temp, drawLimitY1, pictureIndex + temp * imageWidth * 3
+    
+    if y < drawLimitY1 then
+        local temp = drawLimitY1 - y
+        clippedImageHeight = clippedImageHeight - temp
+        y = drawLimitY1
     end
-
-    -- Bottom
-    temp = y + clippedImageHeight - 1
-
-    if (temp > drawLimitY2) then
-        clippedImageHeight = clippedImageHeight - temp + drawLimitY2
+    
+    if y + clippedImageHeight - 1 > drawLimitY2 then
+        clippedImageHeight = drawLimitY2 - y + 1
     end
-    logger.log("Checkpoint 2")
-
-    local screenIndex, screenIndexStep, pictureIndexStep, background, foreground, char = bufferWidth * (y - 1) + x, bufferWidth - clippedImageWidth, (imageWidth - clippedImageWidth) * 3
-
-    for j = 1, clippedImageHeight do
-        for i = 1, clippedImageWidth do
-            newFrameBackgrounds[screenIndex], newFrameForegrounds[screenIndex] = picture[pictureIndex], picture[pictureIndex + 1]
-
-            newFrameChars[screenIndex] = picture[pictureIndex + 2]
-
-            screenIndex, pictureIndex = screenIndex + 1, pictureIndex + 3
+    
+    local screenIndex = bufferWidth * (y - 1) + x
+    local screenIndexStep = bufferWidth - clippedImageWidth
+    
+    for py = 1, clippedImageHeight do
+        for px = 1, clippedImageWidth do
+            local bg, fg, char = image:getPixel(px, py)
+            newFrameBackgrounds[screenIndex] = bg
+            newFrameForegrounds[screenIndex] = fg
+            newFrameChars[screenIndex] = char
+            screenIndex = screenIndex + 1
         end
-
-        screenIndex, pictureIndex = screenIndex + screenIndexStep, pictureIndex + pictureIndexStep
+        screenIndex = screenIndex + screenIndexStep
     end
-    logger.log("Checkpoint 3")
 end
 
 local function update(force)
