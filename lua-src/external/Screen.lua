@@ -1,10 +1,18 @@
 local component = require("component")
 local unicode = require("unicode")
-local logger = require("Logger")
 local gpu = component.gpu
 
+-- Cache more functions and remove logger dependency
 local componentInvoke = component.invoke
 local unicodeWlen = unicode.wlen
+local tableConcat = table.concat
+local gpuSet = gpu.set
+local gpuSetBackground = gpu.setBackground
+local gpuSetForeground = gpu.setForeground
+
+-- Pre-allocate common strings
+local SPACE = " "
+
 local unicodeWlenCache = {}
 
 local bufferWidth
@@ -96,91 +104,74 @@ local function drawImage(x, y, image, blendForeground)
 end
 
 local function update(force)
-    logger.log("Checkpoint 4")
-    local index, indexStepOnEveryLine, changes, x, charX, charIndex, charWlen, equalChars, equalCharsIndex, currentFrameBackground, currentFrameForeground, currentFrameChar, newFrameChar, newFrameForeground, newFrameBackground, changesCurrentFrameBackground, changesCurrentFrameBackgroundCurrentFrameForeground, changesCurrentFrameBackgroundCurrentFrameForegroundIndex, currentForeground = bufferWidth * (drawLimitY1 - 1) + drawLimitX1, (bufferWidth - drawLimitX2 + drawLimitX1 - 1), {}
+    local index = bufferWidth * (drawLimitY1 - 1) + drawLimitX1
+    local indexStep = bufferWidth - drawLimitX2 + drawLimitX1 - 1
+    local changes = {}
+    local currentForeground
+    local lastBackground, lastForeground
+
+    -- Pre-declare variables used in loops
+    local x, currentBg, currentFg, currentChar, newBg, newFg, newChar
+    local changesCurrentBg, changesBgFg, equalChars, equalCharsIndex
 
     for y = drawLimitY1, drawLimitY2 do
         x = drawLimitX1
+        while x <= drawLimitX2 do
+            currentBg, currentFg, currentChar = currentFrameBackgrounds[index], currentFrameForegrounds[index], currentFrameChars[index]
+            newBg, newFg, newChar = newFrameBackgrounds[index], newFrameForegrounds[index], newFrameChars[index]
 
-        while (x <= drawLimitX2) do
-            currentFrameBackground, currentFrameForeground, currentFrameChar = currentFrameBackgrounds[index], currentFrameForegrounds[index], currentFrameChars[index]
+            if currentBg ~= newBg or currentFg ~= newFg or currentChar ~= newChar or force then
+                -- Update frame buffers immediately
+                currentFrameBackgrounds[index] = newBg
+                currentFrameForegrounds[index] = newFg
+                currentFrameChars[index] = newChar
 
-            newFrameBackground, newFrameForeground, newFrameChar = newFrameBackgrounds[index], newFrameForegrounds[index], newFrameChars[index]
-
-            if (currentFrameBackground ~= newFrameBackground or currentFrameForeground ~= newFrameForeground or currentFrameChar ~= newFrameChar or force) then
-                currentFrameBackgrounds[index], currentFrameForegrounds[index], currentFrameChars[index], currentFrameBackground, currentFrameForeground, currentFrameChar = newFrameBackground, newFrameForeground, newFrameChar, newFrameBackground, newFrameForeground, newFrameChar
-
-                charWlen = unicodeWlenCache[currentFrameChar]
-
-                if (not charWlen) then
-                    charWlen = unicodeWlen(currentFrameChar)
-                    unicodeWlenCache[currentFrameChar] = charWlen
+                -- Get or create changes table for this background color
+                changesCurrentBg = changes[newBg]
+                if not changesCurrentBg then
+                    changesCurrentBg = {}
+                    changes[newBg] = changesCurrentBg
                 end
 
-                charX, charIndex, equalChars, equalCharsIndex = x + 1, index + 1, { currentFrameChar }, 2
-
-                for i = 2, charWlen do
-                    currentFrameBackgrounds[charIndex], currentFrameForegrounds[charIndex], currentFrameChars[charIndex], charX, charIndex = newFrameBackground, newFrameForeground, " ", charX + 1, charIndex + 1
+                -- Get or create changes table for this foreground color
+                changesBgFg = changesCurrentBg[newFg]
+                if not changesBgFg then
+                    changesBgFg = {index = 1}
+                    changesCurrentBg[newFg] = changesBgFg
                 end
 
-                while (charX <= drawLimitX2) do
-                    newFrameBackground, newFrameForeground, newFrameChar = newFrameBackgrounds[charIndex], newFrameForegrounds[charIndex], newFrameChars[charIndex]
-
-                    if (newFrameBackground == currentFrameBackground and (newFrameForeground == currentFrameForeground or newFrameChar == " ")) then
-                        charWlen = unicodeWlenCache[newFrameChar]
-
-                        if (not charWlen) then
-                            charWlen = unicodeWlen(newFrameChar)
-                            unicodeWlenCache[newFrameChar] = charWlen
-                        end
-
-                        currentFrameBackgrounds[charIndex], currentFrameForegrounds[charIndex], currentFrameChars[charIndex], charX, charIndex, equalChars[equalCharsIndex], equalCharsIndex = newFrameBackground, newFrameForeground, newFrameChar, charX + 1, charIndex + 1, newFrameChar, equalCharsIndex + 1
-
-                        for i = 2, charWlen do
-                            currentFrameBackgrounds[charIndex], currentFrameForegrounds[charIndex], currentFrameChars[charIndex], charX, charIndex = newFrameBackground, newFrameForeground, " ", charX + 1, charIndex + 1
-                        end
-                    else
-                        break
-                    end
-                end
-
-                changesCurrentFrameBackground = changes[currentFrameBackground] or {}
-                changes[currentFrameBackground] = changesCurrentFrameBackground
-                changesCurrentFrameBackgroundCurrentFrameForeground = changesCurrentFrameBackground[currentFrameForeground] or { index = 1 }
-                changesCurrentFrameBackground[currentFrameForeground] = changesCurrentFrameBackgroundCurrentFrameForeground
-
-                changesCurrentFrameBackgroundCurrentFrameForegroundIndex = changesCurrentFrameBackgroundCurrentFrameForeground.index
-                changesCurrentFrameBackgroundCurrentFrameForeground[changesCurrentFrameBackgroundCurrentFrameForegroundIndex], changesCurrentFrameBackgroundCurrentFrameForegroundIndex = x, changesCurrentFrameBackgroundCurrentFrameForegroundIndex + 1
-                changesCurrentFrameBackgroundCurrentFrameForeground[changesCurrentFrameBackgroundCurrentFrameForegroundIndex], changesCurrentFrameBackgroundCurrentFrameForegroundIndex = y, changesCurrentFrameBackgroundCurrentFrameForegroundIndex + 1
-                changesCurrentFrameBackgroundCurrentFrameForeground[changesCurrentFrameBackgroundCurrentFrameForegroundIndex], changesCurrentFrameBackgroundCurrentFrameForegroundIndex = table.concat(equalChars), changesCurrentFrameBackgroundCurrentFrameForegroundIndex + 1
-
-                x, index, changesCurrentFrameBackgroundCurrentFrameForeground.index = x + equalCharsIndex - 2, index + equalCharsIndex - 2, changesCurrentFrameBackgroundCurrentFrameForegroundIndex
+                -- Store changes
+                local idx = changesBgFg.index
+                changesBgFg[idx] = x
+                changesBgFg[idx + 1] = y
+                changesBgFg[idx + 2] = newChar
+                changesBgFg.index = idx + 3
             end
-
-            x, index = x + 1, index + 1
+            
+            x = x + 1
+            index = index + 1
         end
-
-        index = index + indexStepOnEveryLine
+        index = index + indexStep
     end
-    logger.log("Checkpoint 5")
 
+    -- Apply changes with minimal GPU state changes
     for background, foregrounds in pairs(changes) do
-        gpu.setBackground(background)
-
+        gpuSetBackground(background)
+        
         for foreground, pixels in pairs(foregrounds) do
-            if (currentForeground ~= foreground) then
-                gpu.setForeground(foreground)
+            if currentForeground ~= foreground then
+                gpuSetForeground(foreground)
                 currentForeground = foreground
             end
-
-            for i = 1, #pixels, 3 do
-                gpu.set(pixels[i], pixels[i + 1], pixels[i + 2])
+            
+            -- Draw in batches of same color
+            local i = 1
+            while i < pixels.index do
+                gpuSet(pixels[i], pixels[i + 1], pixels[i + 2])
+                i = i + 3
             end
         end
     end
-    logger.log("Checkpoint 6")
-
-    changes = nil
 end
 
 return {
