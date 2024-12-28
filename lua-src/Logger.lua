@@ -17,14 +17,6 @@ function Logger.log(text)
     end
 end
 
-function Logger.read(numLines)
-    if file then
-        file:seek("end", numLines * -1)
-        return(file:read("*a"))
-    end
-    return("")
-end
-
 function Logger.close()
     if file then
         file:close()
