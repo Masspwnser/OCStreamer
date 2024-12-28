@@ -1,5 +1,6 @@
 local component = require("component")
 local unicode = require("unicode")
+local gpu = component.gpu
 
 --------------------------------------------------------------------------------
 
@@ -112,6 +113,7 @@ end
 
 local function setGPUAddress(address)
 	GPUAddress = address
+	gpu = component.gpu
 
 	flush()
 end
@@ -751,16 +753,16 @@ local function update(force)
 	
 	-- Draw grouped pixels on screen
 	for background, foregrounds in pairs(changes) do
-		componentInvoke(GPUAddress, "setBackground", background)
+		gpu.setBackground(background)
 
 		for foreground, pixels in pairs(foregrounds) do
 			if currentForeground ~= foreground then
-				componentInvoke(GPUAddress, "setForeground", foreground)
+				gpu.setForeground(foreground)
 				currentForeground = foreground
 			end
 
 			for i = 1, #pixels, 3 do
-				componentInvoke(GPUAddress, "set", pixels[i], pixels[i + 1], pixels[i + 2])
+				gpu.set(pixels[i], pixels[i + 1], pixels[i + 2])
 			end
 		end
 	end

@@ -16,14 +16,17 @@ public class Image {
     public final int height;
 
     private final Color[][] pixels;
+    private Color[][] previousPixels;
 
     public Image(BufferedImage image) {
         this.width = image.getWidth();
         this.height = image.getHeight();
         this.pixels = new Color[this.height][this.width];
+        this.previousPixels = new Color[this.height][this.width];
         for (int y = 0; y < this.height; y++) {
             for (int x = 0; x < this.width; x++) {
                 this.pixels[y][x] = new Color(image.getRGB(x, y));
+                this.previousPixels[y][x] = new Color(0x00000000); // Initialize with black
             }
         }
         if (Configuration.instance().shouldDither()) {
@@ -90,11 +93,18 @@ public class Image {
     }
 
     private static double getChannelsDelta(Color color1, Color color2) {
-        return Math.pow(color1.red - color2.red, 2) + Math.pow(color1.green - color2.green, 2) + Math.pow(color1.blue - color2.blue, 2);
+        double redDelta = color1.red - color2.red;
+        double greenDelta = color1.green - color2.green;
+        double blueDelta = color1.blue - color2.blue;
+        return Math.sqrt(redDelta * redDelta + greenDelta * greenDelta + blueDelta * blueDelta);
     }
 
     private static Color getBestMatch(Color color1, Color color2, Color targetColor) {
         return getChannelsDelta(color1, targetColor) < getChannelsDelta(color2, targetColor) ? color1 : color2;
+    }
+
+    private boolean isSignificantChange(Color color1, Color color2) {
+        return getChannelsDelta(color1, color2) > Configuration.instance().getColorDeadzone();
     }
 
     private Pixel getBraillePixel(int fromX, int fromY) {
@@ -128,8 +138,14 @@ public class Image {
 
         String brailleChar = getBrailleChar(brailleMatrix);
 
-
-        return new Pixel(minColor, maxColor, 0x00, brailleChar);
+        // Only update pixel if there is a significant change compared to previous frame
+        if (isSignificantChange(minColor, previousPixels[fromY][fromX]) || isSignificantChange(maxColor, previousPixels[fromY][fromX + 1])) {
+            previousPixels[fromY][fromX] = minColor;
+            previousPixels[fromY][fromX + 1] = maxColor;
+            return new Pixel(minColor, maxColor, 0x00, brailleChar);
+        } else {
+            return new Pixel(previousPixels[fromY][fromX], previousPixels[fromY][fromX + 1], 0x00, brailleChar); // No significant change
+        }
     }
 
     private static final double Xp1Yp0 = 7.0d / 16.0d;

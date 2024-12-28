@@ -21,11 +21,6 @@ public class Color {
         this.blue = blue;
     }
 
-    public int toArgb()
-    {
-        return (this.alpha << 24) | ((this.red << 16) | ((this.green << 8) | this.blue));
-    }
-
     public static Color difference(Color color1, Color color2)
     {
         return new Color(
@@ -49,15 +44,6 @@ public class Color {
         if (bSum > 255) bSum = 255;
 
         return new Color(aSum, rSum, gSum, bSum);
-    }
-
-    public static Color average(Color color1, Color color2) {
-        return new Color(
-            (color1.alpha + color2.alpha) / 2,
-            (color1.red + color2.red) / 2,
-            (color1.green + color2.green) / 2,
-            (color1.blue + color2.blue) / 2
-        );
     }
 
     public static Color multiply(Color color, double multiplyer)

@@ -29,6 +29,7 @@ public class Configuration {
     private static String browserBinary;
     private static String userData;
     private static String url;
+    private static double colorDeadzone;
 
     private Configuration() {
         loadConfiguration();
@@ -78,7 +79,8 @@ public class Configuration {
         browserBinary = prop.getProperty("browser.binary", "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe");
         userData = prop.getProperty("browser.userdata", "");
         String oldUrl = url;
-        url = prop.getProperty("url", "https://www.twitch.tv/cerbervt");
+        url = prop.getProperty("url", "https://media.baamboozle.com/uploads/images/582855/1641260267_92918_gif-url.gif");
+        colorDeadzone = Double.parseDouble(prop.getProperty("deadzone", "10"));
         if (oldUrl != null && !url.equals(oldUrl)) {
             Browser.instance().navigate(url);
         }
@@ -120,5 +122,9 @@ public class Configuration {
 
     public boolean isMute() {
         return mute;
+    }
+
+    public double getColorDeadzone() {
+        return colorDeadzone;
     }
 }
