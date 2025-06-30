@@ -1,6 +1,6 @@
-package com.evan;
+package com.mass.ocstreamer.server;
 
-import com.evan.encoding.Image;
+import com.mass.ocstreamer.server.encoding.Image;
 
 import javax.imageio.ImageIO;
 import java.awt.*;

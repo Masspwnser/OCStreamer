@@ -1,4 +1,4 @@
-package com.evan;
+package com.mass.ocstreamer.server;
 
 public class Main {
     public static void main(String[] args) {

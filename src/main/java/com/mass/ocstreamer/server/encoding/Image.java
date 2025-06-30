@@ -1,17 +1,13 @@
-package com.evan.encoding;
+package com.mass.ocstreamer.server.encoding;
 
-import com.evan.Configuration;
+import com.mass.ocstreamer.server.Configuration;
 
 import java.awt.image.BufferedImage;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.logging.Logger;
 
 import org.apache.commons.io.output.ByteArrayOutputStream;
 
 public class Image {
-    private static final Logger logger = Logger.getLogger(Image.class.getName());
-
     public final int width;
     public final int height;
 
@@ -100,8 +96,11 @@ public class Image {
     private Pixel getBraillePixel(int fromX, int fromY) {
         Color[][] brailleArray = getBraiileArray(fromX, fromY);
 
-        double distance, minDistance = 999999.0d, maxDistance = 0.0d;
-        Color minColor = brailleArray[0][0], maxColor = brailleArray[0][0];
+        double distance;
+        double minDistance = 999999.0d;
+        double maxDistance = 0.0d;
+        Color minColor = brailleArray[0][0];
+        Color maxColor = brailleArray[0][0];
 
         for (int y = 0; y < 4; y++) {
             for (int x = 0; x < 2; x++) {

@@ -4,13 +4,15 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>com.evan</groupId>
-  <artifactId>opencomputers-web-streamer</artifactId>
-  <version>1.0</version>
+  <groupId>com.mass</groupId>
+  <artifactId>ocstreamer-server</artifactId>
+  <version>1.0.0</version>
+  <packaging>jar</packaging>
+  <name>OCStreamer Server</name>
 
   <properties>
-    <maven.compiler.source>21</maven.compiler.source>
-    <maven.compiler.target>21</maven.compiler.target>
+    <maven.compiler.source>24</maven.compiler.source>
+    <maven.compiler.target>24</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
 
@@ -25,21 +27,37 @@
 
   <build>
     <plugins>
+      <!-- Assembly plugin to compile jar containing all necessary dependencies -->
       <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>exec-maven-plugin</artifactId>
-        <version>3.5.0</version>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifest>
+              <mainClass>com.mass.ocstreamer.server.Main</mainClass>
+            </manifest>
+          </archive>
+          <descriptorRefs>
+            <descriptorRef>jar-with-dependencies</descriptorRef>
+          </descriptorRefs>
+        </configuration>
         <executions>
           <execution>
+            <id>make-assembly</id>
             <phase>package</phase>
             <goals>
-              <goal>java</goal>
+              <goal>single</goal>
             </goals>
           </execution>
         </executions>
+      </plugin>
+      <!-- Exec plugin for local development -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.5.1</version>
         <configuration>
           <executable>java</executable>
-          <mainClass>com.evan.Main</mainClass>
+          <mainClass>com.mass.ocstreamer.server.Main</mainClass>
         </configuration>
       </plugin>
     </plugins>
@@ -50,13 +68,13 @@
     <dependency>
       <groupId>org.seleniumhq.selenium</groupId>
       <artifactId>selenium-java</artifactId>
-      <version>4.23.1</version>
+      <version>4.33.0</version>
     </dependency>
 
     <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
-      <version>2.16.1</version>
+      <version>2.19.0</version>
     </dependency>
 
   </dependencies>

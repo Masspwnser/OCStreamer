@@ -1,4 +1,4 @@
-package com.evan.encoding;
+package com.mass.ocstreamer.server.encoding;
 
 
 public class Color {

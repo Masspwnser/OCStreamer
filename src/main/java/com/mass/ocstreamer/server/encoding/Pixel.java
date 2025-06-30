@@ -1,11 +1,11 @@
-package com.evan.encoding;
+package com.mass.ocstreamer.server.encoding;
 
 
 public class Pixel {
-    Color background;
-    Color foreground;
-    int alpha;
-    String symbol;
+    public final Color background;
+    public final Color foreground;
+    public final int alpha;
+    public final String symbol;
 
     public Pixel(Color background, Color foreground, int alpha, String symbol) {
         this.background = background;

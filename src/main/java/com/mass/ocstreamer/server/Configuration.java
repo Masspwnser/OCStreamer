@@ -1,4 +1,4 @@
-package com.evan;
+package com.mass.ocstreamer.server;
 
 import java.awt.Dimension;
 import java.io.File;
@@ -75,7 +75,7 @@ public class Configuration {
         headless = Boolean.parseBoolean(prop.getProperty("headless", "true"));
         fullscreen = Boolean.parseBoolean(prop.getProperty("fullscreen", "true"));
         mute = Boolean.parseBoolean(prop.getProperty("mute", "true"));
-        browserBinary = prop.getProperty("browser.binary", "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe");
+        browserBinary = prop.getProperty("browser.binary", "/usr/bin/firefox");
         userData = prop.getProperty("browser.userdata", "");
         String oldUrl = url;
         url = prop.getProperty("url", "https://www.twitch.tv/cerbervt");
