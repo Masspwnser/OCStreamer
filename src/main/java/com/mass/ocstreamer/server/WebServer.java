@@ -16,9 +16,9 @@ public class WebServer {
 
     public WebServer() {
         try {
-            HttpServer server = HttpServer.create(new InetSocketAddress(8008), 0);
+            HttpServer server = HttpServer.create(new InetSocketAddress(56795), 0);
             server.createContext("/stream", new ImageHandler());
-            server.createContext("/test", new TestHandler());
+            server.createContext("/status", new StatusHandler());
             server.setExecutor(null); // creates a default executor
             server.start();
             logger.info("Started web server");
@@ -43,7 +43,7 @@ public class WebServer {
         }
     }
 
-    class TestHandler implements HttpHandler {
+    class StatusHandler implements HttpHandler {
         @Override
         public synchronized void handle(HttpExchange t) throws IOException {
             byteImage = Browser.instance().getScreenshot().getByteArray();

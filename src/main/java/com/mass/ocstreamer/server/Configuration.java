@@ -2,7 +2,8 @@ package com.mass.ocstreamer.server;
 
 import java.awt.Dimension;
 import java.io.File;
-import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Properties;
 import java.util.logging.Logger;
 
@@ -15,7 +16,7 @@ import org.apache.commons.io.monitor.FileAlterationObserver;
 public class Configuration {
     private static final Logger logger = Logger.getLogger(Configuration.class.getName());
 
-    private static final File CONFIG_FILE = new File("properties.cfg");
+    private static final String PROPERTIES_FILE = "properties.cfg";
 
     private static final Properties prop = new Properties();
     private static Configuration instance = null;
@@ -63,10 +64,10 @@ public class Configuration {
 
     private static synchronized void loadConfiguration() {
         logger.info("Loading configuration");
-        try (FileInputStream fis = new FileInputStream(CONFIG_FILE)) {
-            prop.load(fis);
-        } catch (Exception e) {
-            logger.severe("Error loading configuration");
+        try (InputStream is = Configuration.class.getClassLoader().getResourceAsStream(PROPERTIES_FILE)) {
+            prop.load(is);
+        } catch (IOException e) {
+            logger.severe("Error loading configuration {}" + e.getMessage());
         }
 
         width = Integer.parseInt(prop.getProperty("width", "160"));
@@ -78,7 +79,7 @@ public class Configuration {
         browserBinary = prop.getProperty("browser.binary", "/usr/bin/firefox");
         userData = prop.getProperty("browser.userdata", "");
         String oldUrl = url;
-        url = prop.getProperty("url", "https://www.twitch.tv/cerbervt");
+        url = prop.getProperty("url", "https://pngimg.com/uploads/smiley/smiley_PNG27.png");
         if (oldUrl != null && !url.equals(oldUrl)) {
             Browser.instance().navigate(url);
         }

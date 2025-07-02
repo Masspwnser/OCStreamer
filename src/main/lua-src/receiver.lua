@@ -8,16 +8,16 @@ local internet = require("internet")
 local handle
 local connected
 
-local TEST_RESPONSE = "READY"
-local TEST_ENDPOINT = "http://localhost:8008/test"
-local STREAM_ENDPOINT = "http://localhost:8008/stream"
+local STATUS_GOOD_RESPONSE = "READY"
+local STATUS_ENDPOINT = "http://localhost:56795/status"
+local STREAM_ENDPOINT = "http://localhost:56795/stream"
 
 function mainLoop()
     logger.log("Waiting for connection to server")
     while not connected do
-        handle = internet.request(TEST_ENDPOINT)
+        handle = internet.request(STATUS_ENDPOINT)
         for chunk in handle do
-            if chunk == TEST_RESPONSE then
+            if chunk == STATUS_GOOD_RESPONSE then
                 connected = true
                 break
             end
