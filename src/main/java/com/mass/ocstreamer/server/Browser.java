@@ -22,35 +22,20 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 public class Browser  {
     private static final Logger logger = Logger.getLogger(Browser.class.getName());
 
-    private static Browser instance = null;
-    
     private final WebDriver driver;
 
-    private Browser() {
+    public Browser() {
         // TODO Support other browsers
         driver = getDriver();
         
-        if (Configuration.instance().isFullscreen()) {
-            new WebDriverWait(driver, Duration.ofSeconds(10));
-            new Actions(driver).sendKeys("f").perform(); // Attempt fullscreen
-        }
+        navigate(Configuration.instance().getUrl());
 
         // Make absolutely sure the browser dies
-        Runtime.getRuntime().addShutdownHook(new Thread() {
-            @Override
-            public void run() {
-                if (driver != null) {
-                    driver.quit();
-                }
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            if (driver != null) {
+                driver.quit();
             }
-        });
-    }
-
-    public static synchronized Browser instance() {
-        if (instance == null) {
-            instance = new Browser();
-        }
-        return instance;
+        }));
     }
 
     public void navigate(String newUrl) {
@@ -79,35 +64,34 @@ public class Browser  {
     // This sucks, but not sure there's a better way to get multi-browser support
     private WebDriver getDriver() {
         WebDriver webDriver = null;
-        if (Configuration.instance().getBrowserBinaryPath().toLowerCase().contains("firefox")) {
+        if (Configuration.instance().getBrowserBinaryPath().endsWith("firefox")) {
             FirefoxOptions options = new FirefoxOptions();
             options.setBinary(Configuration.instance().getBrowserBinaryPath());
             if (Configuration.instance().isHeadless()) {
                 options.addArguments("--headless");
             }
-            // TODO figure out mute for firefox
-            // TODO this can be automated with commandline arguments
-            if (!Configuration.instance().getUserDataPath().equals("")) {
+            if (Configuration.instance().isMute()) {
+                options.addArguments("media.volume_scale", "0.0");
+            }
+            if (!Configuration.instance().getUserDataPath().isEmpty()) {
                 options.addArguments("--profile");
                 options.addArguments(Configuration.instance().getUserDataPath());
             }
             webDriver = new FirefoxDriver(options);
-            webDriver.get(Configuration.instance().getUrl());
-        } else if (Configuration.instance().getBrowserBinaryPath().toLowerCase().contains("chrome")) {
+        } else if (Configuration.instance().getBrowserBinaryPath().endsWith("chrome")) {
             ChromeOptions options = new ChromeOptions();
-            options.setBinary(Configuration.instance().getBrowserBinaryPath());
+            options.setBinary(Configuration.instance().getBrowserBinaryPath().toFile());
             if (Configuration.instance().isHeadless()) {
                 options.addArguments("--headless");
             }
             if (Configuration.instance().isMute()) {
                 options.addArguments("--mute-audio");
             }
-            if (!Configuration.instance().getUserDataPath().equals("")) {
+            if (!Configuration.instance().getUserDataPath().isEmpty()) {
                 options.addArguments("--profile");
                 options.addArguments(Configuration.instance().getUserDataPath());
             }
             webDriver = new ChromeDriver(options);
-            webDriver.get(Configuration.instance().getUrl());
         }
         return webDriver;
     }

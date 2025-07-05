@@ -4,6 +4,7 @@ import java.awt.Dimension;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Path;
 import java.util.Properties;
 import java.util.logging.Logger;
 
@@ -27,7 +28,7 @@ public class Configuration {
     private static boolean headless;
     private static boolean fullscreen;
     private static boolean mute;
-    private static String browserBinary;
+    private static Path browserBinary;
     private static String userData;
     private static String url;
 
@@ -76,13 +77,9 @@ public class Configuration {
         headless = Boolean.parseBoolean(prop.getProperty("headless", "true"));
         fullscreen = Boolean.parseBoolean(prop.getProperty("fullscreen", "true"));
         mute = Boolean.parseBoolean(prop.getProperty("mute", "true"));
-        browserBinary = prop.getProperty("browser.binary", "/usr/bin/firefox");
+        browserBinary = Path.of(prop.getProperty("browser.binary", "/usr/bin/firefox"));
         userData = prop.getProperty("browser.userdata", "");
-        String oldUrl = url;
         url = prop.getProperty("url", "https://pngimg.com/uploads/smiley/smiley_PNG27.png");
-        if (oldUrl != null && !url.equals(oldUrl)) {
-            Browser.instance().navigate(url);
-        }
     }
 
     public String getUrl() {
@@ -99,7 +96,7 @@ public class Configuration {
         return new Dimension(width*2, height*4);
     }
 
-    public String getBrowserBinaryPath() {
+    public Path getBrowserBinaryPath() {
         return browserBinary;
     }
 
