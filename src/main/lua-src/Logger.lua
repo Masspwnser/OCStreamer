@@ -1,24 +1,31 @@
 local os = require("os")
 
 local Logger = {}
+local enabled = false
 local file
 
 function Logger.enableLogging()
-    local fileName = "/tmp/log.txt"
+    if enabled then
+        return
+    end
+    local fileName = "/home/log.txt"
     file = io.open(fileName, "w")
     if not file then
         print("Error loading logger, file not created at: " .. fileName)
+    else
+        enabled = true
     end
 end
 
 function Logger.log(text)
-    if file then
+    if enabled then
         file:write(string.format("%.9f", os.clock()) .. ":\t" .. text .. "\n")
+        file:flush()
     end
 end
 
 function Logger.read(numLines)
-    if file then
+    if enabled then
         file:seek("end", numLines * -1)
         return(file:read("*a"))
     end
@@ -26,7 +33,7 @@ function Logger.read(numLines)
 end
 
 function Logger.close()
-    if file then
+    if enabled then
         file:close()
     end
 end
