@@ -11,4 +11,6 @@ RUN apk --no-cache add firefox
 
 COPY --from=build /app/target/ocstreamer-server-1.0.0-jar-with-dependencies.jar /app/server.jar
 
+EXPOSE 56795
+
 ENTRYPOINT ["java", "-jar", "/app/server.jar"]
