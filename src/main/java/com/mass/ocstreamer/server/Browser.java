@@ -71,7 +71,7 @@ public class Browser  {
                 options.addArguments("--headless");
             }
             if (Configuration.instance().isMute()) {
-                options.addArguments("media.volume_scale", "0.0");
+                options.addPreference("media.volume_scale", "0.0");
             }
             if (!Configuration.instance().getUserDataPath().isEmpty()) {
                 options.addArguments("--profile");
