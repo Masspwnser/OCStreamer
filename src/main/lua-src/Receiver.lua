@@ -1,53 +1,80 @@
-local screen = dofile("external/Screen.lua")
+local internet = require("internet")
+local thread = require("thread")
+
+local Queue = require("external.Queue")
 local logger = require("Logger")
 local encodingHelper = require("Encoding")
-
-local component = require("component")
-local gpu = component.gpu
-local internet = require("internet")
-local handle
-local connected
 
 local STATUS_GOOD_RESPONSE = "READY"
 local STATUS_ENDPOINT = "http://localhost:56795/status"
 local STREAM_ENDPOINT = "http://localhost:56795/stream"
+local MAX_IMAGES = 10
+local BACKOFF_TIME = 1
+
+local handle
+local images = Queue:new()
+
+local Receiver = {
+    connected = false,
+}
+
+function Receiver.hasImageAvailable()
+    return not images:isEmpty()
+end
+
+function Receiver.getNextImage()
+    return images:dequeue()
+end
+
+local function readyToIngestImage()
+    if not Receiver.connected then
+        logger.log("Receiver is not connected, cannot ingest image")
+        return false
+    end
+    if images:length() > MAX_IMAGES then
+        logger.log("Image buffer is full, cannot ingest new image")
+        return false
+    end
+    return true
+end
 
 local function attemptConnection()
     logger.log("Waiting for connection to server")
     handle = internet.request(STATUS_ENDPOINT)
     for chunk in handle do
         if chunk == STATUS_GOOD_RESPONSE then
-            connected = true
+            Receiver.connected = true
+            logger.log("Connected to server")
             break
         end
     end
-    logger.log("Connected to server")
 end
 
-local function mainLoop()
+local function receiverLogic()
     attemptConnection()
 
-    while connected do
+    while Receiver.connected do
+        while not readyToIngestImage() do
+            os.sleep(BACKOFF_TIME)
+        end
         logger.log("Requesting stream data from server")
         handle = internet.request(STREAM_ENDPOINT)
         logger.log("Received a response")
-        local picture = encodingHelper.readPixelData(handle)
+        images:enqueue(encodingHelper.readPixelData(handle))
         logger.log("Finished loading image into memory")
-        screen.drawImage(0, 0, picture, false)
-        logger.log("Finished drawing")
-        screen.update()
-        logger.log("Finished rendering")
     end
 end
 
-logger.enableLogging()
-screen.setGPUAddress(gpu.address)
+thread.create(function()
+  while true do
+      local success, reason = pcall(receiverLogic)
+      if not success then
+          Receiver.connected = false
+          images:clear()
+          logger.log("Failed receiverLogic loop: " .. reason)
+          os.sleep(1)
+      end
+  end
+end)
 
-while true do
-    local success, reason = pcall(mainLoop)
-    if not success then
-        connected = false
-        logger.log("Failed logic loop: " .. reason)
-        os.sleep(1)
-    end
-end
+return Receiver
