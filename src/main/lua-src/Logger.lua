@@ -1,40 +1,42 @@
 local os = require("os")
 
-local Logger = {}
-local enabled = false
-local file
+local Logger = {
+    enabled = false,
+    file = nil,
+    fileName = "/tmp/log.txt"
+}
 
 function Logger.enableLogging()
-    if enabled then
+    if Logger.enabled then
+        Logger.log("Logger already enabled, not taking action.")
         return
     end
-    local fileName = "/home/log.txt"
-    file = io.open(fileName, "w")
-    if not file then
-        print("Error loading logger, file not created at: " .. fileName)
+    Logger.file = io.open(Logger.fileName, "w")
+    if not Logger.file then
+        print("Error loading logger, Logger.file not created at: " .. Logger.fileName)
     else
-        enabled = true
+        Logger.enabled = true
     end
 end
 
 function Logger.log(text)
-    if enabled then
-        file:write(string.format("%.9f", os.clock()) .. ":\t" .. text .. "\n")
-        file:flush()
+    if Logger.enabled then
+        Logger.file:write(string.format("%.9f", os.clock()) .. ":\t" .. text .. "\n")
+        Logger.file:flush()
     end
 end
 
-function Logger.read(numLines)
-    if enabled then
-        file:seek("end", numLines * -1)
-        return(file:read("*a"))
+function Logger.dumpLogs()
+    local readFile = io.open(Logger.fileName, "r")
+    if readFile then
+        return readFile:read("*a")
     end
-    return("")
+    return "Failure to read log Logger.file"
 end
 
 function Logger.close()
-    if enabled then
-        file:close()
+    if Logger.enabled then
+        Logger.file:close()
     end
 end
 
