@@ -3,7 +3,7 @@ local os = require("os")
 local Logger = {
     enabled = false,
     file = nil,
-    fileName = "/tmp/log.txt"
+    fileName = "/home/log.txt"
 }
 
 function Logger.enableLogging()

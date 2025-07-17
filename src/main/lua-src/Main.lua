@@ -1,30 +1,31 @@
 local component = require("component")
+local thread = require("thread")
 
 local screen = dofile("external/Screen.lua")
 local logger = require("Logger")
 local receiver = require("Receiver")
 
-local RECOVERY_TIME = 0.1
-
-local function mainLogic()
-    while receiver.connected do
-        while not receiver.hasImageAvailable() do
-            os.sleep(RECOVERY_TIME)
-        end
-        screen.drawImage(0, 0, receiver.getNextImage(), false)
-        logger.log("Finished drawing")
-        screen.update()
-        logger.log("Finished rendering")
-    end
-end
+local IMAGE_NOT_AVAILABLE_BACKOFF = 0.1
+local CONNECTION_CHECK_FREQUENCY = 1
 
 logger.enableLogging()
 screen.setGPUAddress(component.gpu.address)
 
 while true do
-    local success, reason = pcall(mainLogic)
-    if not success then
-        logger.log("Failed mainLogic loop: " .. reason)
-        os.sleep(1)
+    while not receiver.connected do
+        os.sleep(CONNECTION_CHECK_FREQUENCY)
+    end
+    while receiver.connected do
+        while not receiver.hasImageAvailable() do
+            logger.log("Image not available at time of request, waiting...")
+            os.sleep(IMAGE_NOT_AVAILABLE_BACKOFF)
+        end
+        logger.log("Image available, drawing to buffer")
+        screen.drawImage(0, 0, receiver.getNextImage(), false)
+        logger.log("Finished drawing to buffer. Rendering to screen")
+        thread.create(function()
+            screen.update()
+            logger.log("Finished rendering to screen")
+        end)
     end
 end

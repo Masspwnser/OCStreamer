@@ -16,7 +16,10 @@ end
 function Encoding.readPixelData(handle)
     local pixelPos = 1
 	-- The image may come across in several chunks depending on the OC configuration
-	for chunk in handle do
+    for chunk in handle do
+        if #chunk == 2048 then
+            print("Please modify your OC configuration to allow for larger chunks. Set maxReadBuffer to 65536")
+        end
 		local chunkSize = #chunk
         local chunkPos = 1
 		-- Images have a header containing the width and height of the image
