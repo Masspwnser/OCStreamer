@@ -23,9 +23,7 @@ while true do
         logger.log("Image available, drawing to buffer")
         screen.drawImage(0, 0, receiver.getNextImage(), false)
         logger.log("Finished drawing to buffer. Rendering to screen")
-        thread.create(function()
-            screen.update()
-            logger.log("Finished rendering to screen")
-        end)
+        screen.update()
+        logger.log("Finished rendering to screen")
     end
 end
