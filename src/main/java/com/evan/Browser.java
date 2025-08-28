@@ -16,6 +16,7 @@ import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.firefox.FirefoxOptions;
+import org.openqa.selenium.firefox.FirefoxProfile;
 import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
@@ -27,9 +28,9 @@ public class Browser  {
     private final WebDriver driver;
 
     private Browser() {
-        // TODO Support other browsers
         driver = getDriver();
-        
+        driver.get(Configuration.instance().getUrl());
+
         if (Configuration.instance().isFullscreen()) {
             new WebDriverWait(driver, Duration.ofSeconds(10));
             new Actions(driver).sendKeys("f").perform(); // Attempt fullscreen
@@ -39,9 +40,7 @@ public class Browser  {
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
             public void run() {
-                if (driver != null) {
-                    driver.quit();
-                }
+                driver.quit();
             }
         });
     }
@@ -76,24 +75,23 @@ public class Browser  {
         return new Image(resized);
     }
 
-    // This sucks, but not sure there's a better way to get multi-browser support
+    // This sucks, but not sure if there's a better way to get multi-browser support
     private WebDriver getDriver() {
-        WebDriver webDriver = null;
+        WebDriver webDriver;
         if (Configuration.instance().getBrowserBinaryPath().toLowerCase().contains("firefox")) {
             FirefoxOptions options = new FirefoxOptions();
             options.setBinary(Configuration.instance().getBrowserBinaryPath());
             if (Configuration.instance().isHeadless()) {
                 options.addArguments("--headless");
             }
-            // TODO figure out mute for firefox
-            // TODO this can be automated with commandline arguments
-            if (!Configuration.instance().getUserDataPath().equals("")) {
-                options.addArguments("--profile");
-                options.addArguments(Configuration.instance().getUserDataPath());
+            if (Configuration.instance().isMute()) {
+                options.addPreference("media.volume_scale", "0.0");
+            }
+            if (!Configuration.instance().getUserDataPath().isEmpty()) {
+                options.setProfile(new FirefoxProfile(new File(Configuration.instance().getUserDataPath())));
             }
             webDriver = new FirefoxDriver(options);
-            webDriver.get(Configuration.instance().getUrl());
-        } else if (Configuration.instance().getBrowserBinaryPath().toLowerCase().contains("chrome")) {
+        } else if (Configuration.instance().getBrowserBinaryPath().toLowerCase().contains("chrom")) {
             ChromeOptions options = new ChromeOptions();
             options.setBinary(Configuration.instance().getBrowserBinaryPath());
             if (Configuration.instance().isHeadless()) {
@@ -102,12 +100,13 @@ public class Browser  {
             if (Configuration.instance().isMute()) {
                 options.addArguments("--mute-audio");
             }
-            if (!Configuration.instance().getUserDataPath().equals("")) {
+            if (!Configuration.instance().getUserDataPath().isEmpty()) {
                 options.addArguments("--profile");
                 options.addArguments(Configuration.instance().getUserDataPath());
             }
             webDriver = new ChromeDriver(options);
-            webDriver.get(Configuration.instance().getUrl());
+        } else {
+            throw new UnsupportedOperationException();
         }
         return webDriver;
     }
